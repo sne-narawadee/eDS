@@ -1,0 +1,33 @@
+<!----- Auto size iframe full screen ----->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>eDS-Checkpoint Report</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* ปิดการเลื่อน */
+        }
+        iframe {
+            border: 0; /* ปิดขอบของ iframe */
+            width: 100%;
+            height: 100%;
+            display: block; /* ปิดช่องว่างภายใน iframe */
+        }
+    </style>
+</head>
+<body>
+    <iframe
+      id="app"
+      src="https://script.google.com/macros/s/AKfycbxpjgHmo7GtYsGX4UON6liyJ1kfFYs9AjglpHia_npDRzHKSGpVBvp8zF9v3isswMsJrg/exec"
+      allow="geolocation"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
+</body>
+</html>
