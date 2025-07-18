@@ -1,4 +1,3 @@
-<!----- Auto size iframe full screen ----->
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -20,12 +19,39 @@
             display: block; /* ปิดช่องว่างภายใน iframe */
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ดึง URL parameters จากหน้า test.html
+            const urlParams = new URLSearchParams(window.location.search);
+            const rowId = urlParams.get('rowId');
+            const spreadsheetId = urlParams.get('spreadsheetId');
+            const sheetName = urlParams.get('sheetName');
+
+            // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย
+            let googleScriptUrl = "https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec";
+
+            // ถ้ามีพารามิเตอร์ ให้แนบเข้าไปใน URL ของ Google Apps Script
+            const paramsToPass = [];
+            if (rowId) paramsToPass.push(`rowId=${rowId}`);
+            if (spreadsheetId) paramsToPass.push(`spreadsheetId=${spreadsheetId}`);
+            if (sheetName) paramsToPass.push(`sheetName=${sheetName}`);
+
+            if (paramsToPass.length > 0) {
+                googleScriptUrl += "?" + paramsToPass.join("&");
+            }
+
+            // กำหนด src ของ iframe ให้เป็น URL ที่สร้างขึ้นมา
+            const iframe = document.getElementById('app');
+            if (iframe) {
+                iframe.src = googleScriptUrl;
+            }
+        });
+    </script>
 </head>
 <body>
     <iframe
       id="app"
-      src="https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec"
-      allow="geolocation"
+      src="" allow="geolocation"
       frameborder="0"
       scrolling="no">
     </iframe>
