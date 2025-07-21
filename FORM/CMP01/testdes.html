@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดการตรวจสอบ</title>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .data-section {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .image-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>รายละเอียดการตรวจสอบ</h1>
+    <div id="loading">กำลังโหลดข้อมูล...</div>
+    <div id="content" style="display:none;">
+        <div class="data-section">
+            <h2>ข้อมูลพื้นฐาน</h2>
+            <p><strong>บริษัท:</strong> <span id="company"></span></p>
+            <p><strong>จุดตรวจสอบ:</strong> <span id="checkpoint"></span></p>
+            <p><strong>พื้นที่:</strong> <span id="area"></span></p>
+        </div>
+        
+        <div class="data-section">
+            <h2>รายละเอียดการตรวจ</h2>
+            <p><strong>รอบการตรวจ:</strong> <span id="period"></span></p>
+            <p><strong>ผู้บันทึก:</strong> <span id="recorder"></span></p>
+            <p><strong>สถานะ:</strong> <span id="incident"></span></p>
+            <p><strong>รายละเอียด:</strong> <span id="description"></span></p>
+        </div>
+        
+        <div class="data-section">
+            <h2>รูปภาพประกอบ</h2>
+            <div class="image-grid" id="image-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const rowId = urlParams.get('rowId');
+            
+            if (!rowId) {
+                document.getElementById('loading').innerHTML = 'ไม่พบข้อมูลแถวที่ระบุ';
+                return;
+            }
+
+            // ดึงข้อมูลจาก Google Apps Script
+            fetch(`https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec?mode=detailed&rowId=${rowId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // เติมข้อมูลในฟอร์ม
+                    document.getElementById('company').textContent = data.company || '-';
+                    document.getElementById('checkpoint').textContent = data.checkpoint || '-';
+                    document.getElementById('area').textContent = data.area || '-';
+                    document.getElementById('period').textContent = data.period || '-';
+                    document.getElementById('recorder').textContent = data.recorder || '-';
+                    document.getElementById('incident').textContent = data.incident || '-';
+                    document.getElementById('description').textContent = data.description || '-';
+
+                    // แสดงรูปภาพ
+                    const imageContainer = document.getElementById('image-container');
+                    data.images.forEach((imgUrl, index) => {
+                        if (imgUrl) {
+                            imageContainer.innerHTML += `
+                                <div class="image-container">
+                                    <img src="${imgUrl}" alt="รูปภาพประกอบ ${index + 1}">
+                                    <p>รูปที่ ${index + 1}</p>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // ซ่อน loading และแสดงเนื้อหา
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('content').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loading').innerHTML = 'เกิดข้อผิดพลาดขณะโหลดข้อมูล';
+                });
+        });
+    </script>
+</body>
+</html>
