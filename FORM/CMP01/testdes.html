@@ -1,334 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-    <base target="_top">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แก้ไขข้อมูลการตรวจสอบ</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>eDS-Checkpoint Report</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
-        .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .loading-overlay {
-            display: none; /* ซ่อนไว้ก่อน */
-            position: fixed;
-            top: 0;
-            left: 0;
+        html, body {
+            margin: 0;
+            padding: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            overflow: hidden; /* ปิดการเลื่อน */
         }
-        .image-preview-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .image-preview {
-            max-width: 100px;
-            max-height: 100px;
-            object-fit: cover;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        iframe {
+            border: 0; /* ปิดขอบของ iframe */
+            width: 100%;
+            height: 100%;
+            display: block; /* ปิดช่องว่างภายใน iframe */
         }
     </style>
-</head>
-<body>
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="preloader-wrapper big active">
-            <div class="spinner-layer spinner-blue-only">
-                <div class="circle-clipper left">
-                    <div class="circle"></div>
-                </div><div class="gap-patch">
-                    <div class="circle"></div>
-                </div><div class="circle-clipper right">
-                    <div class="circle"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <h4>แก้ไขข้อมูลการตรวจสอบ <span id="rowIdDisplay"></span></h4>
-        <form id="editForm">
-            <input type="hidden" id="rowId" name="rowId">
-            <input type="hidden" id="timestamp" name="timestamp">
-
-            <div class="row">
-                <div class="input-field col s12">
-                    <input id="companyName" name="companyName" type="text" class="validate" required>
-                    <label for="companyName">ชื่อบริษัท</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <input id="inspectionPoint" name="inspectionPoint" type="text" class="validate" required>
-                    <label for="inspectionPoint">จุดตรวจสอบ</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <input id="inspectionArea" name="inspectionArea" type="text" class="validate" required>
-                    <label for="inspectionArea">พื้นที่ / คลังสินค้า</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <select id="inspectionRound" name="inspectionRound" required>
-                        <option value="" disabled selected>เลือกรอบการตรวจ</option>
-                        </select>
-                    <label>รอบการตรวจ</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <select id="recorder" name="recorder" required>
-                        <option value="" disabled selected>เลือกผู้บันทึก</option>
-                        </select>
-                    <label>ผู้บันทึก</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <select id="abnormalEvent" name="abnormalEvent" required>
-                        <option value="" disabled selected>เลือกเหตุการณ์ผิดปกติ</option>
-                        </select>
-                    <label>เหตุการณ์ผิดปกติ</label>
-                </div>
-            </div>
-            <div class="row">
-                <div class="input-field col s12">
-                    <textarea id="abnormalDescription" name="abnormalDescription" class="materialize-textarea"></textarea>
-                    <label for="abnormalDescription">รายละเอียดเหตุการณ์ผิดปกติ</label>
-                </div>
-            </div>
-
-            <div class="row">
-                <p>รูปภาพ (คุณสามารถอัปโหลดใหม่เพื่อทับรูปภาพเดิมได้):</p>
-                <div class="image-preview-container" id="imagePreviewContainer">
-                    </div>
-                <div class="file-field input-field col s12">
-                    <div class="btn">
-                        <span>รูปภาพ 1</span>
-                        <input type="file" id="image1" accept="image/*">
-                    </div>
-                    <div class="file-path-wrapper">
-                        <input class="file-path validate" type="text" placeholder="เลือกรูปภาพ 1">
-                    </div>
-                </div>
-                 <div class="file-field input-field col s12">
-                    <div class="btn">
-                        <span>รูปภาพ 2</span>
-                        <input type="file" id="image2" accept="image/*">
-                    </div>
-                    <div class="file-path-wrapper">
-                        <input class="file-path validate" type="text" placeholder="เลือกรูปภาพ 2">
-                    </div>
-                </div>
-                 <div class="file-field input-field col s12">
-                    <div class="btn">
-                        <span>รูปภาพ 3</span>
-                        <input type="file" id="image3" accept="image/*">
-                    </div>
-                    <div class="file-path-wrapper">
-                        <input class="file-path validate" type="text" placeholder="เลือกรูปภาพ 3">
-                    </div>
-                </div>
-                 <div class="file-field input-field col s12">
-                    <div class="btn">
-                        <span>รูปภาพ 4</span>
-                        <input type="file" id="image4" accept="image/*">
-                    </div>
-                    <div class="file-path-wrapper">
-                        <input class="file-path validate" type="text" placeholder="เลือกรูปภาพ 4">
-                    </div>
-                </div>
-            </div>
-
-            <div class="row center">
-                <button class="btn waves-effect waves-light" type="submit" name="action">บันทึกการแก้ไข
-                    <i class="material-icons right">send</i>
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            M.FormSelect.init(document.querySelectorAll('select')); // Initialize Materialize selects
-
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const form = document.getElementById('editForm');
+            // ดึง URL parameters จากหน้า testdes.html
             const urlParams = new URLSearchParams(window.location.search);
             const rowId = urlParams.get('rowId');
-            const mode = urlParams.get('mode'); // ควรจะเป็น 'edit'
+            
+            // hardcode appsScriptUrl ตามที่ระบุ
+            const appsScriptUrl = "https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec"; 
+            
+            const mode = urlParams.get('mode') || 'new'; // ดึงโหมดการทำงาน (edit/new)
 
-            if (!rowId || mode !== 'edit') {
-                M.toast({html: 'ไม่พบ rowId หรือโหมดไม่ถูกต้องสำหรับการแก้ไข', classes: 'red'});
-                console.error('Invalid parameters for edit mode.');
+            // ตรวจสอบว่ามี rowId หรือไม่ (appsScriptUrl ถูก hardcode แล้ว)
+            if (!rowId) {
+                console.error("Missing rowId parameter.");
+                // อาจแสดงข้อความแจ้งเตือนผู้ใช้ตรงนี้
                 return;
             }
 
-            document.getElementById('rowId').value = rowId;
-            document.getElementById('rowIdDisplay').textContent = `#${rowId}`;
-            showLoading(true);
+            // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย
+            let googleScriptUrl = appsScriptUrl;
 
-            // ดึงข้อมูล Dropdown และข้อมูลรายละเอียดเพื่อแก้ไข
-            Promise.all([
-                google.script.run.withSuccessHandler(loadDropdowns).getDropdownOptions(),
-                google.script.run.withSuccessHandler(loadFormData).withFailureHandler(onFailure).getDetailedInspectionData(parseInt(rowId))
-            ]).then(() => {
-                showLoading(false);
-            }).catch(error => {
-                showLoading(false);
-                M.toast({html: `ข้อผิดพลาดในการโหลดข้อมูล: ${error.message}`, classes: 'red'});
-                console.error('Error loading initial data:', error);
-            });
+            const paramsToPass = [];
+            paramsToPass.push(`mode=${mode}`); // ส่ง mode กลับไปให้ Apps Script
+            paramsToPass.push(`rowId=${rowId}`);
 
-            function showLoading(show) {
-                loadingOverlay.style.display = show ? 'flex' : 'none';
+            if (paramsToPass.length > 0) {
+                googleScriptUrl += "?" + paramsToPass.join("&");
             }
 
-            function loadDropdowns(data) {
-                populateSelect('inspectionRound', data.rounds);
-                populateSelect('recorder', data.recorders);
-                populateSelect('abnormalEvent', data.abnormalOptions);
-                M.FormSelect.init(document.querySelectorAll('select')); // Re-initialize selects after populating
+            // กำหนด src ของ iframe ให้เป็น URL ที่สร้างขึ้นมา
+            const iframe = document.getElementById('app');
+            if (iframe) {
+                iframe.src = googleScriptUrl;
             }
-
-            function populateSelect(selectId, options) {
-                const selectElement = document.getElementById(selectId);
-                selectElement.innerHTML = `<option value="" disabled selected>เลือก${selectId === 'inspectionRound' ? 'รอบการตรวจ' : selectId === 'recorder' ? 'ผู้บันทึก' : 'เหตุการณ์ผิดปกติ'}</option>`;
-                options.forEach(option => {
-                    const opt = document.createElement('option');
-                    opt.value = option;
-                    opt.textContent = option;
-                    selectElement.appendChild(opt);
-                });
-            }
-
-            function loadFormData(response) {
-                if (response.success && response.data) {
-                    const data = response.data;
-                    document.getElementById('timestamp').value = data.timestamp; // เก็บ timestamp เดิมไว้
-                    document.getElementById('companyName').value = data.company;
-                    document.getElementById('inspectionPoint').value = data.checkpoint;
-                    document.getElementById('inspectionArea').value = data.area;
-                    document.getElementById('abnormalDescription').value = data.description;
-
-                    // ตั้งค่า Dropdown
-                    M.FormSelect.getInstance(document.getElementById('inspectionRound')).set(data.period);
-                    M.FormSelect.getInstance(document.getElementById('recorder')).set(data.recorder);
-                    M.FormSelect.getInstance(document.getElementById('abnormalEvent')).set(data.incident);
-                    M.FormSelect.init(document.querySelectorAll('select')); // Re-initialize selects to show selected value
-
-                    // Trigger Materialize label activation for text fields
-                    M.updateTextFields();
-
-                    // แสดงรูปภาพเดิม
-                    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-                    imagePreviewContainer.innerHTML = ''; // Clear previous previews
-                    data.images.forEach((url, index) => {
-                        if (url) {
-                            const img = document.createElement('img');
-                            img.src = url;
-                            img.alt = `รูปภาพเดิม ${index + 1}`;
-                            img.classList.add('image-preview');
-                            imagePreviewContainer.appendChild(img);
-                        }
-                    });
-
-                } else {
-                    M.toast({html: `ไม่สามารถโหลดข้อมูล: ${response.message}`, classes: 'red'});
-                    console.error('Failed to load data:', response.message);
-                }
-            }
-
-            function onFailure(error) {
-                showLoading(false);
-                M.toast({html: `เกิดข้อผิดพลาด: ${error.message}`, classes: 'red'});
-                console.error('Error:', error);
-            }
-
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                showLoading(true);
-
-                const formData = {
-                    rowId: document.getElementById('rowId').value,
-                    timestamp: document.getElementById('timestamp').value, // ใช้ timestamp เดิม
-                    companyName: document.getElementById('companyName').value,
-                    inspectionPoint: document.getElementById('inspectionPoint').value,
-                    inspectionArea: document.getElementById('inspectionArea').value,
-                    inspectionRound: M.FormSelect.getInstance(document.getElementById('inspectionRound')).getSelectedValues()[0],
-                    recorder: M.FormSelect.getInstance(document.getElementById('recorder')).getSelectedValues()[0],
-                    abnormalEvent: M.FormSelect.getInstance(document.getElementById('abnormalEvent')).getSelectedValues()[0],
-                    abnormalDescription: document.getElementById('abnormalDescription').value,
-                };
-
-                const fileInputs = [
-                    document.getElementById('image1'),
-                    document.getElementById('image2'),
-                    document.getElementById('image3'),
-                    document.getElementById('image4')
-                ];
-
-                const promises = fileInputs.map((input, index) => {
-                    return new Promise((resolve) => {
-                        if (input.files && input.files[0]) {
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                formData[`image${index + 1}`] = e.target.result.split(',')[1]; // Base64 part
-                                resolve();
-                            };
-                            reader.onerror = function() {
-                                console.error(`Error reading file ${input.id}`);
-                                resolve(); // Resolve even on error to not block Promise.all
-                            };
-                            reader.readAsDataURL(input.files[0]);
-                        } else {
-                            formData[`image${index + 1}`] = ""; // ไม่มีไฟล์ใหม่ให้อัปโหลด
-                            resolve();
-                        }
-                    });
-                });
-
-                Promise.all(promises).then(() => {
-                    google.script.run
-                        .withSuccessHandler(function(response) {
-                            showLoading(false);
-                            if (response.success) {
-                                M.toast({html: response.message, classes: 'green'});
-                                // อาจจะปิดหน้าต่าง หรือ redirect ไปหน้ารายการ
-                                setTimeout(() => google.script.host.close(), 2000); // ปิดหน้าต่างหลังจาก 2 วินาที
-                            } else {
-                                M.toast({html: `บันทึกไม่สำเร็จ: ${response.message}`, classes: 'red'});
-                            }
-                        })
-                        .withFailureHandler(onFailure)
-                        .processForm(formData);
-                }).catch(error => {
-                    showLoading(false);
-                    M.toast({html: `ข้อผิดพลาดในการอ่านไฟล์: ${error.message}`, classes: 'red'});
-                    console.error('File processing error:', error);
-                });
-            });
         });
     </script>
+</head>
+<body>
+    <iframe
+      id="app"
+      src="" allow="geolocation"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
 </body>
 </html>
