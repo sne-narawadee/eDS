@@ -24,13 +24,14 @@
             // ดึง URL parameters จากหน้า testdes.html
             const urlParams = new URLSearchParams(window.location.search);
             const rowId = urlParams.get('rowId');
-            
-            // hardcode appsScriptUrl ตามที่ระบุ
-            const appsScriptUrl = "https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec"; 
+            const appsScriptUrlParam = urlParams.get('appsScriptUrl'); // ดึง appsScriptUrl จาก parameter
+
+            // ใช้ appsScriptUrl ที่ส่งมา หรือ hardcode ถ้าไม่พบ
+            const appsScriptUrl = appsScriptUrlParam || "https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec"; 
             
             const mode = urlParams.get('mode') || 'new'; // ดึงโหมดการทำงาน (edit/new)
 
-            // ตรวจสอบว่ามี rowId หรือไม่ (appsScriptUrl ถูก hardcode แล้ว)
+            // ตรวจสอบว่ามี rowId หรือไม่
             if (!rowId) {
                 console.error("Missing rowId parameter.");
                 // อาจแสดงข้อความแจ้งเตือนผู้ใช้ตรงนี้
