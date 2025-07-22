@@ -21,38 +21,22 @@
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ดึง URL parameters ทั้งหมดจากหน้า testdes.html
+            // ดึง URL parameters จากหน้า testqr.html
             const urlParams = new URLSearchParams(window.location.search);
-
-            // ดึง appsScriptUrl จาก parameter หรือใช้ค่า hardcode ถ้าไม่พบ
-            // **สำคัญ: คุณต้องเปลี่ยน URL นี้ให้เป็น URL ของการ Deploy Apps Script ของคุณ**
-            const appsScriptUrlParam = urlParams.get('appsScriptUrl');
-            const appsScriptUrl = appsScriptUrlParam || "https://script.google.com/macros/s/AKfycbxY1XFudzOkfdieFcalmZyxCTeKutyL3Th-RKrc2WxCBT2AM8M9aYYzAGE0D3RaGp45bw/exec";
-
-            let googleScriptUrl = appsScriptUrl;
-            const paramsToPass = [];
-
-            // ตรวจสอบและส่ง rowId (สำหรับ QR Code สแกนเพื่อสร้างรายการใหม่)
-            const rowId = urlParams.get('rowId');
-            if (rowId) {
-                paramsToPass.push(`rowId=${rowId}`);
-            }
-
-            // ตรวจสอบและส่ง editRowId (สำหรับโหมดแก้ไขข้อมูลที่มีอยู่)
-            const editRowId = urlParams.get('editRowId');
-            if (editRowId) {
-                paramsToPass.push(`editRowId=${editRowId}`);
-            }
-
-            // ส่ง spreadsheetId และ sheetName ไปด้วย (หาก Apps Script ต้องการใช้)
+            const rowId = urlParams.get('rowId'); // สำหรับการเพิ่มข้อมูลใหม่
+            const editRowId = urlParams.get('editRowId'); // สำหรับการแก้ไขข้อมูล
             const spreadsheetId = urlParams.get('spreadsheetId');
-            if (spreadsheetId) {
-                paramsToPass.push(`spreadsheetId=${spreadsheetId}`);
-            }
             const sheetName = urlParams.get('sheetName');
-            if (sheetName) {
-                paramsToPass.push(`sheetName=${sheetName}`);
-            }
+
+            // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย
+            let googleScriptUrl = "https://script.google.com/macros/s/AKfycbwLEOcSJK06G3zAhPI20HcoxPMcbvSqtiwbO0pv_9VntOIEfgoDJom7KBqCA-d_74it/exec"; // **เปลี่ยนเป็น Deployment URL ของคุณ!**
+
+            // ถ้ามีพารามิเตอร์ ให้แนบเข้าไปใน URL ของ Google Apps Script
+            const paramsToPass = [];
+            if (rowId) paramsToPass.push(`rowId=${rowId}`);
+            if (editRowId) paramsToPass.push(`editRowId=${editRowId}`); // เพิ่ม editRowId
+            if (spreadsheetId) paramsToPass.push(`spreadsheetId=${spreadsheetId}`);
+            if (sheetName) paramsToPass.push(`sheetName=${sheetName}`);
 
             if (paramsToPass.length > 0) {
                 googleScriptUrl += "?" + paramsToPass.join("&");
@@ -62,8 +46,6 @@
             const iframe = document.getElementById('app');
             if (iframe) {
                 iframe.src = googleScriptUrl;
-            } else {
-                console.error("ไม่พบ iframe ที่มี id 'app'");
             }
         });
     </script>
