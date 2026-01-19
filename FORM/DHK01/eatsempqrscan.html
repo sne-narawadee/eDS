@@ -24,15 +24,16 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // ดึง URL parameters จากหน้า test.html
-            const urlParams = new URLSearchParams(window.location.search);
-            const rowId = urlParams.get('rowId');
-            const spreadsheetId = urlParams.get('spreadsheetId');
-            const sheetName = urlParams.get('sheetName');
+            var urlParams = new URLSearchParams(window.location.search);
+            var rowId = urlParams.get('rowId');
+            var spreadsheetId = urlParams.get('spreadsheetId');
+            var sheetName = urlParams.get('sheetName');
 
-            // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย
-            let googleScriptUrl = "https://script.google.com/macros/s/AKfycbyPktAnbRzPPTX7PHgqqopU-J56386oQhtqKdnBCjCCE_xMOW_OUWjgQUu5-HngzWU/exec";
+            // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย let
+            //var googleScriptUrl = "https://script.google.com/macros/s/AKfycbyPktAnbRzPPTX7PHgqqopU-J56386oQhtqKdnBCjCCE_xMOW_OUWjgQUu5-HngzWU/exec";
+            var googleScriptUrl = "https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec";
             // ถ้ามีพารามิเตอร์ ให้แนบเข้าไปใน URL ของ Google Apps Script
-            const paramsToPass = [];
+            var paramsToPass = [];
             if (rowId) paramsToPass.push(`rowId=${rowId}`);
             if (spreadsheetId) paramsToPass.push(`spreadsheetId=${spreadsheetId}`);
             if (sheetName) paramsToPass.push(`sheetName=${sheetName}`);
@@ -42,7 +43,7 @@
             }
 
             // กำหนด src ของ iframe ให้เป็น URL ที่สร้างขึ้นมา
-            const iframe = document.getElementById('app');
+            var iframe = document.getElementById('app');
             if (iframe) {
                 iframe.src = googleScriptUrl;
             }
