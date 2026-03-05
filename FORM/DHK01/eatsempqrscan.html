@@ -32,58 +32,47 @@ iframe{
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function(){
-
-    // =========================
-    // QR Parameter
-    // =========================
-
+    document.addEventListener("DOMContentLoaded", function(){
+    
     const params = new URLSearchParams(window.location.search);
-
+    
     const empCode = params.get("empCode");
     const spreadsheetId = params.get("spreadsheetId");
     const sheetName = params.get("sheetName");
-    const page = params.get("page") || "index";
-
-    // =========================
-    // GAS WebApp URL
-    // =========================
-
+    const page = params.get("page");
+    
     const GAS_URL =
     "https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec";
-
-    // =========================
-    // Build URL
-    // =========================
-
-    let url = GAS_URL + "?page=" + encodeURIComponent(page);
-
+    
+    let url = GAS_URL;
+    
+    let query = [];
+    
+    if(page){
+    query.push("page=" + encodeURIComponent(page));
+    }
+    
     if(empCode){
-        url += "&empCode=" + encodeURIComponent(empCode);
+    query.push("empCode=" + encodeURIComponent(empCode));
     }
-
-    // รองรับ QR เก่า
+    
     if(spreadsheetId){
-        url += "&spreadsheetId=" + encodeURIComponent(spreadsheetId);
+    query.push("spreadsheetId=" + encodeURIComponent(spreadsheetId));
     }
-
+    
     if(sheetName){
-        url += "&sheetName=" + encodeURIComponent(sheetName);
+    query.push("sheetName=" + encodeURIComponent(sheetName));
     }
-
+    
+    if(query.length){
+    url += "?" + query.join("&");
+    }
+    
     console.log("Load GAS:", url);
-
-    // =========================
-    // Load GAS
-    // =========================
-
-    const iframe = document.getElementById("app");
-
-    if(iframe){
-        iframe.src = url;
-    }
-
-});
+    
+    document.getElementById("app").src = url;
+    
+    });
 
 </script>
 
