@@ -1,4 +1,4 @@
-//Service Worker (sw.js)
+//Service Worker (sw.js) //
 //สร้างไฟล์ชื่อ sw.js ไว้ที่ Root (ที่เดียวกับ index.html)
 //ช่วยให้ Chrome ยอม "เด้ง" ปุ่มติดตั้ง (Install)
 // sw.js - Version: Network First (No Cache)
