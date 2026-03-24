@@ -36,6 +36,16 @@
       frameborder="0"
       scrolling="no">
     </iframe>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js') // ชี้ไปที่ไฟล์ sw.js ใน GitHub ของคุณ
+            .then(reg => console.log('Service Worker registered!', reg))
+            .catch(err => console.log('Service Worker registration failed!', err));
+        });
+      }
+    </script>
 </body>
 </html>
 
