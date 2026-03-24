@@ -2,33 +2,81 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="eDS">
+    <link rel="apple-touch-icon" href="icon.png">
     
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="eDS">
-<link rel="apple-touch-icon" href="icon.png">
-   
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>SNE-eDocumnet(eDS)</title>
+    
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* ปิดการเลื่อน */
+            overflow: hidden;
+            background-color: #f8f9fa;
         }
         iframe {
-            border: 0; /* ปิดขอบของ iframe */
+            border: 0;
             width: 100%;
             height: 100%;
-            display: block; /* ปิดช่องว่างภายใน iframe */
+            display: block;
+        }
+
+        /* สไตล์ของแถบแจ้งเตือนการติดตั้ง */
+        #installContainer {
+            display: none; /* เริ่มต้นซ่อนไว้ก่อน */
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: rgba(0, 123, 255, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            font-family: sans-serif;
+            font-size: 14px;
+            align-items: center;
+            gap: 15px;
+            width: 80%;
+            max-width: 350px;
+            justify-content: space-between;
+        }
+
+        #installBtn {
+            cursor: pointer;
+            font-weight: bold;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        #closeBtn {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0.8;
+            padding: 0 5px;
+            border-left: 1px solid rgba(255,255,255,0.3);
+            margin-left: 10px;
+        }
+
+        /* ซ่อนแถบติดตั้งบน PC (หน้าจอกว้าง) เพื่อไม่ให้เกะกะ */
+        @media (min-width: 1024px) {
+            #installContainer {
+                display: none !important; 
+            }
         }
     </style>
 </head>
 <body>
+
     <iframe
       id="app"
       src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec"
@@ -37,14 +85,59 @@
       scrolling="no">
     </iframe>
 
+    <div id="installContainer">
+        <span id="installBtn">➕ ติดตั้งแอป eDS บนมือถือ</span>
+        <span id="closeBtn">✕</span>
+    </div>
+
     <script>
+      // --- การจัดการ Service Worker ---
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js') // ชี้ไปที่ไฟล์ sw.js ใน GitHub ของคุณ
-            .then(reg => console.log('Service Worker registered!', reg))
-            .catch(err => console.log('Service Worker registration failed!', err));
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registered!'))
+            .catch(err => console.log('Registration failed!', err));
         });
       }
+
+      // --- การจัดการปุ่มติดตั้ง (Install Prompt) ---
+      let deferredPrompt;
+      const installContainer = document.getElementById('installContainer');
+      const installBtn = document.getElementById('installBtn');
+      const closeBtn = document.getElementById('closeBtn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // ป้องกัน Chrome ไม่ให้แสดง Banner เดิมเอง
+        e.preventDefault();
+        // เก็บ Event ไว้ใช้เรียกตอน User กดปุ่ม
+        deferredPrompt = e;
+        // แสดงแถบติดตั้งที่เราสร้างเอง
+        installContainer.style.display = 'flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          // เรียกหน้าต่างติดตั้งของ Chrome
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User Choice: ${outcome}`);
+          // ล้างค่าทิ้งหลังจากตัดสินใจแล้ว
+          deferredPrompt = null;
+          installContainer.style.display = 'none';
+        }
+      });
+
+      closeBtn.addEventListener('click', () => {
+        // ปิดแถบแจ้งเตือนในรอบการใช้งานนี้
+        installContainer.style.display = 'none';
+      });
+
+      window.addEventListener('appinstalled', () => {
+        // เมื่อติดตั้งเสร็จ ให้ซ่อนปุ่มทันที
+        installContainer.style.display = 'none';
+        deferredPrompt = null;
+        console.log('PWA installed successfully');
+      });
     </script>
 </body>
 </html>
