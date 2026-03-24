@@ -1,30 +1,18 @@
 //Service Worker (sw.js)
 //สร้างไฟล์ชื่อ sw.js ไว้ที่ Root (ที่เดียวกับ index.html)
 //ช่วยให้ Chrome ยอม "เด้ง" ปุ่มติดตั้ง (Install)
-const CACHE_NAME = 'eds-cache-v1';
-const urlsToCache = [
-  '/eDS/',
-  '/eDS/index.html',
-  '/eDS/manifest.json',
-  '/eDS/icon.png'
-];
-
-// ขั้นตอนการติดตั้ง (Install) - เก็บไฟล์ลง Cache
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
-  );
+// sw.js - Version: Network First (No Cache)
+self.addEventListener('install', (event) => {
+  // บังคับให้ Service Worker ตัวใหม่ทำงานทันที
+  self.skipWaiting();
 });
 
-// ขั้นตอนการดึงข้อมูล (Fetch) - ถ้ามีใน Cache ให้ดึงจาก Cache ถ้าไม่มีให้ดึงจาก Network
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
-  );
+self.addEventListener('activate', (event) => {
+  // ควบคุมหน้าเว็บทั้งหมดทันทีที่ติดตั้งเสร็จ
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+  // ปล่อยให้ทุก Request วิ่งไปที่ Network โดยตรง ไม่ต้องเช็ก Cache
+  event.respondWith(fetch(event.request));
 });
