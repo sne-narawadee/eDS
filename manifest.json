@@ -1,9 +1,11 @@
 {
   "name": "eDocument System",
   "short_name": "eDS",
+  "description": "SNE e-Document System",
+  "start_url": "./index.html",
+  "display": "standalone",
   "theme_color": "#8B0000",
   "background_color": "#8B0000",
-  "display": "standalone",
   "icons": [
     {
       "src": "icon.png",
@@ -15,6 +17,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "start_url": "./index.html"
+  ]
 }
