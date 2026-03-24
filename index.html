@@ -3,9 +3,8 @@
 <html lang="th">
 <head>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#8B0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="eDS">
     <link rel="apple-touch-icon" href="icon.png">
     
@@ -15,107 +14,129 @@
     
     <style>
         html, body {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            overflow: hidden; background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f8f9fa;
         }
-        iframe { border: 0; width: 100%; height: 100%; display: block; }
+        iframe {
+            border: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
 
-        /* --- ปุ่มติดตั้ง (Mobile Only) --- */
+        /* สไตล์ของแถบแจ้งเตือนการติดตั้ง */
         #installContainer {
-            display: none; position: fixed; bottom: 20px; left: 50%;
-            transform: translateX(-50%); z-index: 10000;
-            background: #007bff; color: white; padding: 12px 20px;
-            border-radius: 50px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            font-family: sans-serif; align-items: center; gap: 15px;
+            display: none; /* เริ่มต้นซ่อนไว้ก่อน */
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: rgba(0, 123, 255, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            font-family: sans-serif;
+            font-size: 14px;
+            align-items: center;
+            gap: 15px;
+            width: 80%;
+            max-width: 350px;
+            justify-content: space-between;
         }
 
-        /* --- ปุ่มปิด/ย้อนกลับ (Mobile Only - มุมขวาบน) --- */
-        #closeAppBtn {
-            position: fixed; top: 15px; right: 15px;
-            width: 35px; height: 35px; background: rgba(0, 0, 0, 0.4);
-            color: white; border-radius: 50%; display: none;
-            align-items: center; justify-content: center;
-            font-size: 20px; font-weight: bold; z-index: 9999;
+        #installBtn {
             cursor: pointer;
+            font-weight: bold;
+            flex-grow: 1;
+            text-align: center;
         }
 
-        /* --- ปุ่มกลับหน้าหลัก (PC Only - มุมขวาล่าง) --- */
-        #homeBtnPC {
-            position: fixed; bottom: 20px; right: 20px;
-            background: rgba(40, 167, 69, 0.9); /* สีเขียว */
-            color: white; padding: 10px 15px; border-radius: 8px;
-            font-family: sans-serif; font-size: 14px; cursor: pointer;
-            z-index: 9998; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: none; align-items: center; gap: 8px;
-            transition: background 0.3s;
+        #closeBtn {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            opacity: 0.8;
+            padding: 0 5px;
+            border-left: 1px solid rgba(255,255,255,0.3);
+            margin-left: 10px;
         }
-        #homeBtnPC:hover { background: #218838; }
 
-        /* ✨ เงื่อนไขสำหรับ PC (จอกว้างกว่า 1024px) ✨ */
+        /* ซ่อนแถบติดตั้งบน PC (หน้าจอกว้าง) เพื่อไม่ให้เกะกะ */
         @media (min-width: 1024px) {
-            #homeBtnPC { display: flex; } /* แสดงปุ่มกลับหน้าหลักบน PC */
-            #installContainer, #closeAppBtn { display: none !important; }
-        }
-
-        /* ✨ เงื่อนไขสำหรับ Mobile (จอเล็ก) ✨ */
-        @media (max-width: 1023px) {
-            #closeAppBtn { display: flex; }
-            #homeBtnPC { display: none !important; }
+            #installContainer {
+                display: none !important; 
+            }
         }
     </style>
 </head>
 <body>
 
-    <iframe id="app" src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec" allow="geolocation" frameborder="0" scrolling="no"></iframe>
+    <iframe
+      id="app"
+      src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec"
+      allow="geolocation"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
 
     <div id="installContainer">
-        <span id="installBtn" style="cursor:pointer;">➕ ติดตั้งแอป eDS</span>
-        <span id="closeInstall" style="cursor:pointer; font-weight:bold; border-left:1px solid white; padding-left:10px;">✕</span>
+        <span id="installBtn">➕ ติดตั้งแอป eDS บนมือถือ</span>
+        <span id="closeBtn">✕</span>
     </div>
 
-    <div id="closeAppBtn">✕</div>
-
-    <div id="homeBtnPC">🔄 กลับหน้าหลัก eDS</div>
-
     <script>
-      // 1. Service Worker
+      // --- การจัดการ Service Worker ---
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registered!'))
+            .catch(err => console.log('Registration failed!', err));
+        });
       }
 
-      // 2. Logic การติดตั้ง (Mobile)
+      // --- การจัดการปุ่มติดตั้ง (Install Prompt) ---
       let deferredPrompt;
+      const installContainer = document.getElementById('installContainer');
+      const installBtn = document.getElementById('installBtn');
+      const closeBtn = document.getElementById('closeBtn');
+
       window.addEventListener('beforeinstallprompt', (e) => {
+        // ป้องกัน Chrome ไม่ให้แสดง Banner เดิมเอง
         e.preventDefault();
+        // เก็บ Event ไว้ใช้เรียกตอน User กดปุ่ม
         deferredPrompt = e;
-        if (window.innerWidth < 1024) {
-            document.getElementById('installContainer').style.display = 'flex';
-        }
+        // แสดงแถบติดตั้งที่เราสร้างเอง
+        installContainer.style.display = 'flex';
       });
 
-      document.getElementById('installBtn').addEventListener('click', async () => {
+      installBtn.addEventListener('click', async () => {
         if (deferredPrompt) {
+          // เรียกหน้าต่างติดตั้งของ Chrome
           deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User Choice: ${outcome}`);
+          // ล้างค่าทิ้งหลังจากตัดสินใจแล้ว
           deferredPrompt = null;
-          document.getElementById('installContainer').style.display = 'none';
+          installContainer.style.display = 'none';
         }
       });
 
-      document.getElementById('closeInstall').addEventListener('click', () => {
-        document.getElementById('installContainer').style.display = 'none';
+      closeBtn.addEventListener('click', () => {
+        // ปิดแถบแจ้งเตือนในรอบการใช้งานนี้
+        installContainer.style.display = 'none';
       });
-
-      // 3. Logic ปุ่มเริ่มใหม่/รีโหลด (ทั้ง Mobile และ PC)
-      const refreshAction = () => {
-        location.reload(); // รีโหลดหน้าเว็บทั้งหมด
-      };
-
-      document.getElementById('closeAppBtn').addEventListener('click', refreshAction);
-      document.getElementById('homeBtnPC').addEventListener('click', refreshAction);
 
       window.addEventListener('appinstalled', () => {
-        document.getElementById('installContainer').style.display = 'none';
+        // เมื่อติดตั้งเสร็จ ให้ซ่อนปุ่มทันที
+        installContainer.style.display = 'none';
+        deferredPrompt = null;
+        console.log('PWA installed successfully');
       });
     </script>
 </body>
