@@ -11,39 +11,41 @@
             margin: 0; padding: 0;
             width: 100%; height: 100%;
             overflow: hidden; background-color: #f8f9fa;
+            font-family: 'Sarabun', sans-serif;
         }
         iframe { border: 0; width: 100%; height: 100%; display: block; }
 
-        /* --- ปุ่มย้อนกลับ (ลอยทับทุกอย่าง) --- */
+        /* --- ส่วนของปุ่มนำทาง (ลอยทับทุกหน้าจอ) --- */
         #navButtons {
             position: fixed;
             top: 15px;
             left: 15px;
             display: flex;
             gap: 10px;
-            z-index: 999999; /* สูงที่สุดเพื่อให้ทับหน้า PDF Preview */
+            z-index: 2147483647; /* ค่าสูงสุดเพื่อให้ทับหน้า PDF ของ Google Drive */
         }
 
         .float-btn {
             background-color: #8B0000; /* แดงเลือดหมู */
             color: white;
-            padding: 8px 15px;
+            padding: 10px 18px;
             border-radius: 50px;
-            font-family: sans-serif;
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.3);
             display: flex;
             align-items: center;
             justify-content: center;
             text-decoration: none;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            user-select: none;
         }
-        .float-btn:active { transform: scale(0.9); }
+        
+        .float-btn:active { transform: scale(0.9); background-color: #a00000; }
 
-        /* ซ่อนปุ่มย้อนกลับในหน้าแรกสุด */
+        /* ซ่อนปุ่มย้อนกลับไว้ก่อน จะโชว์เมื่อตรวจพบว่าเป็นหน้า PDF */
         #backBtn { display: none; }
     </style>
 </head>
@@ -58,41 +60,43 @@
       id="app"
       src="https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec"
       allow="geolocation"
-      frameborder="0"
-      scrolling="no">
+      frameborder="0">
     </iframe>
 
     <script>
-        // เช็กประวัติการเข้าชม: ถ้าไม่ใช่หน้าแรก ให้แสดงปุ่มย้อนกลับ
-        window.addEventListener('load', function() {
-            if (window.history.length > 1) {
-                document.getElementById('backBtn').style.display = 'flex';
+        /**
+         * 1. ฟังก์ชันตรวจสอบสถานะหน้าจอจาก URL Hash
+         * ถ้า URL ลงท้ายด้วย #pdf ให้แสดงปุ่มย้อนกลับทันที
+         */
+        function checkNavigationState() {
+            const backBtn = document.getElementById('backBtn');
+            // เช็คว่า URL ปัจจุบันมีคำว่า #pdf หรือไม่
+            if (window.location.hash.includes('#pdf')) {
+                backBtn.style.display = 'flex';
+            } else {
+                backBtn.style.display = 'none';
             }
-        });
-
-        // สำหรับ PWA: แจ้งเตือน Service Worker (ถ้ามี)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
         }
 
-        // รอรับข้อความจาก Apps Script เมื่อมีการคลิกปุ่มเครื่องพิมพ์
-        // ตรวจสอบส่วนนี้ใน <script> ของ GitHub
-        // ในไฟล์ index.html ของ GitHub ต้องมี Code ส่วนนี้รอไว้
-        window.addEventListener('message', function(event) {
-            var newUrl = event.data;
-            if (typeof newUrl === 'string' && newUrl.indexOf('drive.google.com') !== -1) {
-                document.getElementById('app').src = newUrl; // เปลี่ยนหน้าใน iframe
-                document.getElementById('backBtn').style.display = 'flex'; // โชว์ปุ่มย้อนกลับ
-            }
-        });
-    
-        // ปรับฟังก์ชันย้อนกลับให้ฉลาดขึ้น
+        /**
+         * 2. ฟังก์ชันย้อนกลับ
+         * ใช้ window.history.back() เพื่อถอยกลับไปหน้าตาราง
+         */
         function goBack() {
-            // ให้ Iframe กลับไปที่หน้าหลักของ Apps Script
-            document.getElementById('app').src = "https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec";
-            document.getElementById('backBtn').style.display = 'none';
+            window.history.back();
         }
-        
+
+        // ตรวจสอบสถานะทุกครั้งที่โหลดหน้าเว็บ
+        window.addEventListener('load', checkNavigationState);
+        // ตรวจสอบทุกครั้งที่มีการเปลี่ยน Hash (กรณีเปิด PDF ภายในหน้าเดิม)
+        window.addEventListener('hashchange', checkNavigationState);
+
+        // รองรับ Service Worker สำหรับ PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(function(err) {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        }
     </script>
 </body>
 </html>
