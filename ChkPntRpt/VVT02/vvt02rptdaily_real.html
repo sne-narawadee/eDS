@@ -50,7 +50,7 @@
 <body>
 
     <div id="navButtons">
-        <div id="backBtn" class="float-btn" onclick="window.history.back()">⬅️ ย้อนกลับ</div>
+        <div id="backBtn" class="float-btn" onclick="goBack()">⬅️ ย้อนกลับ</div>
         <a href="https://sne-narawadee.github.io/eDS" target="_top" class="float-btn">🏠 หน้าหลัก</a>
     </div>
 
@@ -74,6 +74,25 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});
         }
+
+        // รอรับข้อความจาก Apps Script เมื่อมีการคลิกปุ่มเครื่องพิมพ์
+        window.addEventListener('message', function(event) {
+            var newUrl = event.data;
+            if (newUrl.indexOf('drive.google.com') !== -1) {
+                // สั่งให้ Iframe เปลี่ยนไปหน้า PDF Preview
+                document.getElementById('app').src = newUrl;
+                // แสดงปุ่มย้อนกลับ
+                document.getElementById('backBtn').style.display = 'flex';
+            }
+        });
+    
+        // ปรับฟังก์ชันย้อนกลับให้ฉลาดขึ้น
+        function goBack() {
+            // ให้ Iframe กลับไปที่หน้าหลักของ Apps Script
+            document.getElementById('app').src = "https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec";
+            document.getElementById('backBtn').style.display = 'none';
+        }
+        
     </script>
 </body>
 </html>
