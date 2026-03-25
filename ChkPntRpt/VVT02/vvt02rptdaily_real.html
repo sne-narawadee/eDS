@@ -3,6 +3,87 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#8B0000">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>eDS-Checkpoint Report</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden; background-color: #f8f9fa;
+        }
+        iframe { border: 0; width: 100%; height: 100%; display: block; }
+
+        /* --- ปุ่มย้อนกลับ (ลอยทับทุกอย่าง) --- */
+        #navButtons {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 999999; /* สูงที่สุดเพื่อให้ทับหน้า PDF Preview */
+        }
+
+        .float-btn {
+            background-color: #8B0000; /* แดงเลือดหมู */
+            color: white;
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-family: sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+        .float-btn:active { transform: scale(0.9); }
+
+        /* ซ่อนปุ่มย้อนกลับในหน้าแรกสุด */
+        #backBtn { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="navButtons">
+        <div id="backBtn" class="float-btn" onclick="window.history.back()">⬅️ ย้อนกลับ</div>
+        <a href="https://sne-narawadee.github.io/eDS" target="_top" class="float-btn">🏠 หน้าหลัก</a>
+    </div>
+
+    <iframe
+      id="app"
+      src="https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec"
+      allow="geolocation"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
+
+    <script>
+        // เช็กประวัติการเข้าชม: ถ้าไม่ใช่หน้าแรก ให้แสดงปุ่มย้อนกลับ
+        window.addEventListener('load', function() {
+            if (window.history.length > 1) {
+                document.getElementById('backBtn').style.display = 'flex';
+            }
+        });
+
+        // สำหรับ PWA: แจ้งเตือน Service Worker (ถ้ามี)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
+
+
+<!----------------------------
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>eDS-Checkpoint Report</title>
     <style>
@@ -31,3 +112,5 @@
     </iframe>
 </body>
 </html>
+
+----------->
