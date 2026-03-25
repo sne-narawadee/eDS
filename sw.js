@@ -1,18 +1,57 @@
-//Service Worker (sw.js) //
-//สร้างไฟล์ชื่อ sw.js ไว้ที่ Root (ที่เดียวกับ index.html)
-//ช่วยให้ Chrome ยอม "เด้ง" ปุ่มติดตั้ง (Install)
-// sw.js - Version: Network First (No Cache)
-self.addEventListener('install', (event) => {
-  // บังคับให้ Service Worker ตัวใหม่ทำงานทันที
-  self.skipWaiting();
+/* ============================================================
+   eDS — Service Worker
+   กลยุทธ์: Network First → Cache Fallback
+   ============================================================ */
+
+const CACHE_NAME   = 'eDS-shell-v1';
+const SHELL_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './icon.svg'
+];
+
+/* ── Install: แคช App Shell ── */
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener('activate', (event) => {
-  // ควบคุมหน้าเว็บทั้งหมดทันทีที่ติดตั้งเสร็จ
-  event.waitUntil(self.clients.claim());
+/* ── Activate: ลบ Cache เก่า ── */
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-  // ปล่อยให้ทุก Request วิ่งไปที่ Network โดยตรง ไม่ต้องเช็ก Cache
-  event.respondWith(fetch(event.request));
+/* ── Fetch: Network First, ถ้า offline ใช้ Cache ── */
+self.addEventListener('fetch', event => {
+  const { request } = event;
+
+  // ข้าม cross-origin requests (iframe content, Google APIs)
+  if (!request.url.startsWith(self.location.origin)) return;
+
+  event.respondWith(
+    fetch(request)
+      .then(response => {
+        // อัปเดต cache ด้วยเวอร์ชันล่าสุด
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
+  );
 });
