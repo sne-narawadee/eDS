@@ -77,18 +77,12 @@
 
         // รอรับข้อความจาก Apps Script เมื่อมีการคลิกปุ่มเครื่องพิมพ์
         // ตรวจสอบส่วนนี้ใน <script> ของ GitHub
+        // ในไฟล์ index.html ของ GitHub ต้องมี Code ส่วนนี้รอไว้
         window.addEventListener('message', function(event) {
             var newUrl = event.data;
-            
-            // เช็คว่าข้อมูลที่ส่งมาเป็นลิงก์ Google Drive จริงหรือไม่
             if (typeof newUrl === 'string' && newUrl.indexOf('drive.google.com') !== -1) {
-                // 'app' คือ ID ของ iframe ที่คุณตั้งไว้
-                var iframe = document.getElementById('app');
-                if (iframe) {
-                    iframe.src = newUrl;
-                    // แสดงปุ่มย้อนกลับเมื่อ PDF เปิดแล้ว
-                    document.getElementById('backBtn').style.display = 'flex';
-                }
+                document.getElementById('app').src = newUrl; // เปลี่ยนหน้าใน iframe
+                document.getElementById('backBtn').style.display = 'flex'; // โชว์ปุ่มย้อนกลับ
             }
         });
     
