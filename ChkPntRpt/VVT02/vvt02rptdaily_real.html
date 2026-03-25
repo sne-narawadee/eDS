@@ -76,13 +76,19 @@
         }
 
         // รอรับข้อความจาก Apps Script เมื่อมีการคลิกปุ่มเครื่องพิมพ์
+        // ตรวจสอบส่วนนี้ใน <script> ของ GitHub
         window.addEventListener('message', function(event) {
             var newUrl = event.data;
-            if (newUrl.indexOf('drive.google.com') !== -1) {
-                // สั่งให้ Iframe เปลี่ยนไปหน้า PDF Preview
-                document.getElementById('app').src = newUrl;
-                // แสดงปุ่มย้อนกลับ
-                document.getElementById('backBtn').style.display = 'flex';
+            
+            // เช็คว่าข้อมูลที่ส่งมาเป็นลิงก์ Google Drive จริงหรือไม่
+            if (typeof newUrl === 'string' && newUrl.indexOf('drive.google.com') !== -1) {
+                // 'app' คือ ID ของ iframe ที่คุณตั้งไว้
+                var iframe = document.getElementById('app');
+                if (iframe) {
+                    iframe.src = newUrl;
+                    // แสดงปุ่มย้อนกลับเมื่อ PDF เปิดแล้ว
+                    document.getElementById('backBtn').style.display = 'flex';
+                }
             }
         });
     
