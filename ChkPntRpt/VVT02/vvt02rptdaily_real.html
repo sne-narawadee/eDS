@@ -7,22 +7,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>eDS-Checkpoint Report</title>
     <style>
-        html, body {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            overflow: hidden; background-color: #f8f9fa;
-            font-family: 'Sarabun', sans-serif;
-        }
-        iframe { border: 0; width: 100%; height: 100%; display: block; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8f9fa; }
+        
+        /* สไตล์ Iframe ให้เต็มจอ */
+        #mainFrame { border: 0; width: 100%; height: 100%; display: block; }
 
-        /* --- ส่วนของปุ่มนำทาง (ลอยทับทุกหน้าจอ) --- */
+        /* --- ส่วนของปุ่มนำทาง (ลอยทับถาวร) --- */
         #navButtons {
             position: fixed;
             top: 15px;
             left: 15px;
             display: flex;
             gap: 10px;
-            z-index: 2147483647; /* ค่าสูงสุดเพื่อให้ทับหน้า PDF ของ Google Drive */
+            z-index: 999999999; /* สูงที่สุดเพื่อให้ทับทุกอย่าง */
         }
 
         .float-btn {
@@ -33,20 +30,15 @@
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.3);
             display: flex;
             align-items: center;
-            justify-content: center;
             text-decoration: none;
-            transition: all 0.2s ease;
-            user-select: none;
+            transition: 0.2s;
         }
         
-        .float-btn:active { transform: scale(0.9); background-color: #a00000; }
-
-        /* ซ่อนปุ่มย้อนกลับไว้ก่อน จะโชว์เมื่อตรวจพบว่าเป็นหน้า PDF */
-        #backBtn { display: none; }
+        #backBtn { display: none; } /* ซ่อนไว้ก่อน */
     </style>
 </head>
 <body>
@@ -56,46 +48,24 @@
         <a href="https://sne-narawadee.github.io/eDS" target="_top" class="float-btn">🏠 หน้าหลัก</a>
     </div>
 
-    <iframe
-      id="app"
-      src="https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec"
-      allow="geolocation"
-      frameborder="0">
-    </iframe>
+    <iframe id="mainFrame" src="https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec" allow="geolocation"></iframe>
 
     <script>
-        /**
-         * 1. ฟังก์ชันตรวจสอบสถานะหน้าจอจาก URL Hash
-         * ถ้า URL ลงท้ายด้วย #pdf ให้แสดงปุ่มย้อนกลับทันที
-         */
-        function checkNavigationState() {
-            const backBtn = document.getElementById('backBtn');
-            // เช็คว่า URL ปัจจุบันมีคำว่า #pdf หรือไม่
-            if (window.location.hash.includes('#pdf')) {
-                backBtn.style.display = 'flex';
-            } else {
-                backBtn.style.display = 'none';
+        const frame = document.getElementById('mainFrame');
+        const backBtn = document.getElementById('backBtn');
+        const mainAppUrl = "https://script.google.com/macros/s/AKfycbxUQZGVqUdMZNfCxXogzw5NPoVyfliZmIxGTOpnMqIjFewwy11axZzWFHj4akMYSJ1X/exec";
+
+        // ฟังคำสั่งจาก Apps Script เพื่อเปลี่ยนหน้า PDF
+        window.addEventListener('message', function(event) {
+            if (typeof event.data === 'string' && event.data.includes('drive.google.com')) {
+                frame.src = event.data; // เปลี่ยนเนื้อหาใน Iframe เป็น PDF
+                backBtn.style.display = 'flex'; // โชว์ปุ่มย้อนกลับ
             }
-        }
+        });
 
-        /**
-         * 2. ฟังก์ชันย้อนกลับ
-         * ใช้ window.history.back() เพื่อถอยกลับไปหน้าตาราง
-         */
         function goBack() {
-            window.history.back();
-        }
-
-        // ตรวจสอบสถานะทุกครั้งที่โหลดหน้าเว็บ
-        window.addEventListener('load', checkNavigationState);
-        // ตรวจสอบทุกครั้งที่มีการเปลี่ยน Hash (กรณีเปิด PDF ภายในหน้าเดิม)
-        window.addEventListener('hashchange', checkNavigationState);
-
-        // รองรับ Service Worker สำหรับ PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(function(err) {
-                console.log('ServiceWorker registration failed: ', err);
-            });
+            frame.src = mainAppUrl; // สั่ง Iframe กลับไปหน้าตาราง
+            backBtn.style.display = 'none'; // ซ่อนปุ่มย้อนกลับ
         }
     </script>
 </body>
