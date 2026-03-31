@@ -506,19 +506,6 @@
 
   <script>
 
-	  // ─── Auto open PWA if installed ───────────────
-	  (function() {
-	      const isStandalone = 
-	          window.matchMedia('(display-mode: standalone)').matches || 
-	          window.navigator.standalone;
-	
-	      if (!isStandalone) {
-	          if (window.top !== window.self) {
-	              window.top.location.href = window.location.href;
-	          }
-	      }
-	  })();
-
 	// Auto maximize เมื่อเปิดแอป PC
 	// Maximize window เมื่อเปิดเป็น Progressive web application (PWA)
 	if (window.matchMedia('(display-mode: standalone)').matches ||
