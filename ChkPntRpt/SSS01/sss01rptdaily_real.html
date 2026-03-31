@@ -23,5 +23,23 @@
         frameborder="0"
         scrolling="auto">
     </iframe>
+
+    <script>
+        // ✅ ถ้าหน้านี้ถูกเปิดใน tab ใหม่นอก PWA scope
+        // ให้ redirect กลับเข้า PWA scope อัตโนมัติ
+        (function() {
+            const isStandalone =
+                window.matchMedia('(display-mode: standalone)').matches ||
+                window.navigator.standalone;
+
+            // ถ้าไม่ได้อยู่ใน PWA และไม่ได้อยู่ใน iframe
+            // แสดงว่าเปิดเป็น tab ใหม่ใน browser → redirect เข้า PWA scope
+            if (!isStandalone && window.top === window.self) {
+                window.location.replace(
+                    'https://sne-narawadee.github.io/eDS/APPS/eDS/index.html'
+                );
+            }
+        })();
+    </script>
 </body>
 </html>
