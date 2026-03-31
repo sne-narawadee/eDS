@@ -497,14 +497,25 @@
 
   <script>
 	  
-	// Auto maximize เมื่อเปิดแอป
+	// Auto maximize เมื่อเปิดแอป PC
+	// Maximize window เมื่อเปิดเป็น Progressive web application (PWA)
 	if (window.matchMedia('(display-mode: standalone)').matches ||
-	    window.matchMedia('(display-mode: fullscreen)').matches) {
-	  try {
-	    window.moveTo(0, 0);
-	    window.resizeTo(screen.availWidth, screen.availHeight);
-	  } catch(e) {}
-	}	  
+	    window.navigator.standalone) {
+	  
+	  // วิธีที่ 1: resizeTo เต็มจอ
+	  window.moveTo(0, 0);
+	  window.resizeTo(screen.width, screen.height);
+	  
+	  // วิธีที่ 2: requestFullscreen เป็น fallback
+	  setTimeout(() => {
+	    const el = document.documentElement;
+	    if (el.requestFullscreen) {
+	      el.requestFullscreen().catch(() => {});
+	    } else if (el.webkitRequestFullscreen) {
+	      el.webkitRequestFullscreen();
+	    }
+	  }, 500);
+	}
 	  
     // ─── Service Worker ───────────────────────
     if ('serviceWorker' in navigator) {
