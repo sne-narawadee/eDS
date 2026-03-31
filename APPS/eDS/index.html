@@ -496,6 +496,16 @@
   </div>
 
   <script>
+	  
+	// Auto maximize เมื่อเปิดแอป
+	if (window.matchMedia('(display-mode: standalone)').matches ||
+	    window.matchMedia('(display-mode: fullscreen)').matches) {
+	  try {
+	    window.moveTo(0, 0);
+	    window.resizeTo(screen.availWidth, screen.availHeight);
+	  } catch(e) {}
+	}	  
+	  
     // ─── Service Worker ───────────────────────
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
