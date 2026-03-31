@@ -604,6 +604,132 @@
     document.getElementById('closeIos').addEventListener('click', () => {
       document.getElementById('iosGuide').classList.remove('show');
     });
+
+	  
+//================================= 20260331
+
+// ==============================
+// 🔥 ตรวจ App Mode
+// ==============================
+function isAppMode() {
+  return window.matchMedia('(display-mode: standalone)').matches 
+      || window.navigator.standalone;
+}
+
+// ==============================
+// 🔥 เก็บ install event
+// ==============================
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // 👉 โชว์ popup install ทันที
+  showInstallPopup();
+});
+
+// ==============================
+// 🔥 Popup install
+// ==============================
+function showInstallPopup() {
+  if (isAppMode()) return;
+
+  const box = document.createElement('div');
+  box.style = `
+    position:fixed; inset:0;
+    background:#000c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:99999;
+  `;
+
+  box.innerHTML = `
+    <div style="
+      background:white;
+      padding:28px;
+      border-radius:20px;
+      text-align:center;
+      font-family:Prompt,sans-serif;">
+      
+      <h2>📲 ติดตั้ง eDS</h2>
+      <p>เพื่อใช้งานแบบแอป ไม่มีแถบด้านบน</p>
+
+      <button id="installNow"
+        style="margin-top:10px;
+               padding:10px 20px;
+               border:none;
+               border-radius:30px;
+               background:#06b06a;
+               color:white;
+               font-weight:bold;">
+        ติดตั้งเลย
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(box);
+
+  document.getElementById('installNow').onclick = async () => {
+    if (!deferredPrompt) {
+      alert("กรุณากด Add to Home Screen");
+      return;
+    }
+
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    box.remove();
+  };
+}
+
+// ==============================
+// 🔥 บังคับใช้ App Mode
+// ==============================
+window.addEventListener('load', () => {
+  if (!isAppMode()) {
+
+    // ❗ แสดงหน้าบังคับ install
+    document.body.innerHTML = `
+      <div style="
+        height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        font-family:Prompt,sans-serif;
+        background:#0a7c4e;
+        color:white;
+      ">
+        <h2>📱 กรุณาติดตั้งแอป eDS</h2>
+        <p>เพื่อใช้งานแบบเต็มระบบ ไม่มีแถบด้านบน</p>
+        <button onclick="forceInstall()"
+          style="
+            margin-top:15px;
+            padding:12px 24px;
+            border:none;
+            border-radius:30px;
+            background:#00d68f;
+            color:#054d31;
+            font-weight:bold;">
+          ติดตั้ง
+        </button>
+      </div>
+    `;
+
+    window.forceInstall = async function() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+      } else {
+        alert("กรุณาใช้เมนู Add to Home Screen");
+      }
+    };
+
+    throw new Error("STOP WEB MODE");
+  }
+});
+
   </script>
 </body>
 </html>
