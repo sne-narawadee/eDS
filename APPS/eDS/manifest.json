@@ -4,8 +4,11 @@
   "description": "SNE Electronic Document System - ระบบเอกสารอิเล็กทรอนิกส์",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone", "minimal-ui", "browser"],
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "launch_handler": {
+  "client_mode": "navigate-existing"
+  },
   "orientation": "any",
   "background_color": "#054d31",
   "theme_color": "#0a7c4e",
