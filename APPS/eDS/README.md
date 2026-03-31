@@ -116,10 +116,12 @@ https://[username].github.io/[repo-name]/
 3. อัปโหลดโฟลเดอร์ `icons/` ขึ้น GitHub ใหม่
 
 #ติดตั้ง Python และ library ที่จำเป็น
+
 1
 เปิด Terminal (Mac/Linux) หรือ Command Prompt (Windows) แล้วรันคำสั่ง
 pip install pillow cairosvg
 ถ้าติดตั้ง cairosvg ไม่ได้ ใช้แค่ pillow ก็พอ — script รองรับทั้ง 2 แบบ
+
 2
 จัด folder ให้ถูกต้อง
 ไฟล์ที่ต้องมีใน folder เดียวกันก่อนรัน
@@ -129,15 +131,20 @@ eDS-PWA/
 ├── manifest.json
 ├── sw.js
 └── icons/ ← จะสร้างให้อัตโนมัติ
+
 3
 แก้ไข SVG ในไฟล์ generate_icons.py
 เปิดไฟล์ด้วย Notepad / VS Code แล้วหาตัวแปร SVG_CONTENT แก้ได้ตามต้องการ
-# แก้ SVG ตรงนี้ — เปลี่ยนสี shape ข้อความได้เลย SVG_CONTENT = '''<svg viewBox="0 0 512 512"> <rect width="512" height="512" rx="96" fill="#1a3a5c"/> <!-- สีพื้นหลัง --> ... <text ...>eDS</text> <!-- ข้อความ --> </svg>'''
+# แก้ SVG ตรงนี้ — เปลี่ยนสี shape ข้อความได้เลย 
+SVG_CONTENT = '''<svg viewBox="0 0 512 512"> <rect width="512" height="512" rx="96" fill="#1a3a5c"/> 
+<!-- สีพื้นหลัง --> ... <text ...>eDS</text> <!-- ข้อความ --> </svg>'''
 ถ้าไม่ถนัด SVG → ใช้ Figma/Canva ออกแบบแล้ว export เป็น SVG แปะแทนได้เลย
+
 4
 รัน script
 เปิด Terminal แล้ว cd เข้าไปใน folder โปรเจกต์ จากนั้นรัน
 # เข้าไปใน folder cd path/to/eDS-PWA # รัน script python generate_icons.py
+
 5
 ตรวจสอบผลลัพธ์
 ถ้าสำเร็จจะเห็นข้อความ และไฟล์ใน icons/ ครบทุกขนาด
@@ -159,6 +166,70 @@ eDS-PWA/
 ถ้าต้องการเปลี่ยนแค่สีพื้นหลังของไอคอน แก้แค่ค่า hex ใน `fill="..."` บรรทัดแรกของ SVG ก็พอครับ ไม่ต้องแก้อะไรเพิ่ม
 
 ---
+##Code Sample 
+SVG_CONTENT = '''<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- พื้นหลังโค้งมน (เปลี่ยน fill เพื่อเปลี่ยนสีพื้นหลัง) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a6fd4"/>
+      <stop offset="100%" stop-color="#0f2540"/>
+    </linearGradient>
+    <linearGradient id="doc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5090e8"/>
+      <stop offset="100%" stop-color="#2a5cb8"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5aaeff"/>
+      <stop offset="100%" stop-color="#2a7fd4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- พื้นหลัง -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- เอกสาร (document card) -->
+  <rect x="72" y="62" width="276" height="348" rx="20" fill="url(#doc)" opacity="0.9"/>
+
+  <!-- มุมพับ (dog-ear) -->
+  <path d="M208 62 L348 62 L348 152 Z" fill="rgba(0,0,0,0.2)"/>
+  <path d="M208 62 L208 152 L348 152" fill="none"
+        stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+
+  <!-- เส้นเนื้อหาในเอกสาร -->
+  <rect x="104" y="226" width="210" height="18" rx="9"
+        fill="white" opacity="0.90"/>
+  <rect x="104" y="264" width="210" height="18" rx="9"
+        fill="white" opacity="0.72"/>
+  <rect x="104" y="302" width="148" height="18" rx="9"
+        fill="white" opacity="0.55"/>
+  <rect x="104" y="340" width="185" height="18" rx="9"
+        fill="white" opacity="0.38"/>
+
+  <!-- วงกลม badge มุมขวาล่าง -->
+  <circle cx="356" cy="372" r="108" fill="url(#badge)"/>
+
+  <!-- ตัวอักษร eDS (เปลี่ยน fill เพื่อเปลี่ยนสีตัวอักษร) -->
+  <text x="356" y="420"
+        text-anchor="middle"
+        fill="white"
+        font-size="118"
+        font-weight="800"
+        font-family="Arial, Helvetica, sans-serif">eDS</text>
+
+</svg>'''
+------------
+##จุดที่แก้บ่อยที่สุด:
+ต้องการเปลี่ยน                               แก้ที่
+สีพื้นหลัง                                   stop-color ใน id="bg"
+สีเอกสาร                                   stop-color ใน id="doc"
+สีวงกลม badge                             stop-color ใน id="badge"
+ข้อความ                                   >eDS< ใน <text>
+ขนาดมุมโค้ง                                rx="96" ในบรรทัดพื้นหลัง
+
+## ตัวอย่างถ้าอยากเปลี่ยนเป็น โทนเขียว แค่แก้ 2 บรรทัดนี้:
+<stop offset="0%" stop-color="#06b06a"/>   # เขียวสว่าง
+<stop offset="100%" stop-color="#054d31"/>  # เขียวเข้ม
 
 ## ✅ Features
 
