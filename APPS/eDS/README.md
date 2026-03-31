@@ -166,10 +166,11 @@ SVG_CONTENT = '''<svg viewBox="0 0 512 512"> <rect width="512" height="512" rx="
 ถ้าต้องการเปลี่ยนแค่สีพื้นหลังของไอคอน แก้แค่ค่า hex ใน `fill="..."` บรรทัดแรกของ SVG ก็พอครับ ไม่ต้องแก้อะไรเพิ่ม
 
 ---
-##Code Sample 
+## Code Sample
+<!--
 SVG_CONTENT = '''<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
 
-  <!-- พื้นหลังโค้งมน (เปลี่ยน fill เพื่อเปลี่ยนสีพื้นหลัง) -->
+  <!-- พื้นหลังโค้งมน (เปลี่ยน fill เพื่อเปลี่ยนสีพื้นหลัง) 
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#2a6fd4"/>
@@ -185,18 +186,18 @@ SVG_CONTENT = '''<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
     </linearGradient>
   </defs>
 
-  <!-- พื้นหลัง -->
+  <!-- พื้นหลัง 
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
 
-  <!-- เอกสาร (document card) -->
+  <!-- เอกสาร (document card) 
   <rect x="72" y="62" width="276" height="348" rx="20" fill="url(#doc)" opacity="0.9"/>
 
-  <!-- มุมพับ (dog-ear) -->
+  <!-- มุมพับ (dog-ear) 
   <path d="M208 62 L348 62 L348 152 Z" fill="rgba(0,0,0,0.2)"/>
   <path d="M208 62 L208 152 L348 152" fill="none"
         stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
 
-  <!-- เส้นเนื้อหาในเอกสาร -->
+  <!-- เส้นเนื้อหาในเอกสาร 
   <rect x="104" y="226" width="210" height="18" rx="9"
         fill="white" opacity="0.90"/>
   <rect x="104" y="264" width="210" height="18" rx="9"
@@ -206,10 +207,10 @@ SVG_CONTENT = '''<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect x="104" y="340" width="185" height="18" rx="9"
         fill="white" opacity="0.38"/>
 
-  <!-- วงกลม badge มุมขวาล่าง -->
+  <!-- วงกลม badge มุมขวาล่าง 
   <circle cx="356" cy="372" r="108" fill="url(#badge)"/>
 
-  <!-- ตัวอักษร eDS (เปลี่ยน fill เพื่อเปลี่ยนสีตัวอักษร) -->
+  <!-- ตัวอักษร eDS (เปลี่ยน fill เพื่อเปลี่ยนสีตัวอักษร) 
   <text x="356" y="420"
         text-anchor="middle"
         fill="white"
@@ -230,7 +231,7 @@ SVG_CONTENT = '''<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
 ## ตัวอย่างถ้าอยากเปลี่ยนเป็น โทนเขียว แค่แก้ 2 บรรทัดนี้:
 <stop offset="0%" stop-color="#06b06a"/>   # เขียวสว่าง
 <stop offset="100%" stop-color="#054d31"/>  # เขียวเข้ม
-
+-->
 ## ✅ Features
 
 | Feature | Android | iOS | Desktop |
