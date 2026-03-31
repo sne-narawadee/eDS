@@ -504,110 +504,7 @@
     <span id="closeIos">ปิด ✕</span>
   </div>
 
-  <script>
-
-	// Auto maximize เมื่อเปิดแอป PC
-	// Maximize window เมื่อเปิดเป็น Progressive web application (PWA)
-	if (window.matchMedia('(display-mode: standalone)').matches ||
-	    window.navigator.standalone) {
-	  
-	  // วิธีที่ 1: resizeTo เต็มจอ
-	  window.moveTo(0, 0);
-	  window.resizeTo(screen.width, screen.height);
-	  
-	  // วิธีที่ 2: requestFullscreen เป็น fallback
-	  setTimeout(() => {
-	    const el = document.documentElement;
-	    if (el.requestFullscreen) {
-	      el.requestFullscreen().catch(() => {});
-	    } else if (el.webkitRequestFullscreen) {
-	      el.webkitRequestFullscreen();
-	    }
-	  }, 500);
-	}
-	  
-    // ─── Service Worker ───────────────────────
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(() => console.log('[eDS] SW registered'))
-          .catch(err => console.log('[eDS] SW failed:', err));
-      });
-    }
-
-    // ─── Loading text cycle ───────────────────
-    const loadTexts = ['กำลังโหลด...', 'เชื่อมต่อระบบ...', 'เตรียมข้อมูล...', 'พร้อมใช้งาน ✓'];
-    let ti = 0;
-    const lt = document.getElementById('loaderText');
-    const textInterval = setInterval(() => {
-      ti = (ti + 1) % loadTexts.length;
-      lt.style.opacity = '0';
-      setTimeout(() => { lt.textContent = loadTexts[ti]; lt.style.opacity = '1'; }, 200);
-    }, 700);
-
-    // ─── Splash dismiss ───────────────────────
-    const splash = document.getElementById('splash');
-    function hideSplash() {
-      clearInterval(textInterval);
-      splash.classList.add('fade-out');
-      setTimeout(() => splash.style.display = 'none', 750);
-    }
-
-    // Dismiss after 2.5s OR when iframe loads
-    const splashTimer = setTimeout(hideSplash, 2500);
-    document.getElementById('app').addEventListener('load', () => {
-      clearTimeout(splashTimer);
-      setTimeout(hideSplash, 600); // brief pause so app renders
-    });
-
-    // ─── Android Install Prompt ───────────────
-    let deferredPrompt;
-    const banner   = document.getElementById('installBanner');
-    const installBtn  = document.getElementById('installBtn');
-    const closeInstall = document.getElementById('closeInstall');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (!isIOS()) {
-        setTimeout(() => banner.classList.add('show'), 1200);
-      }
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      banner.classList.remove('show');
-    });
-
-    closeInstall.addEventListener('click', () => banner.classList.remove('show'));
-
-	window.addEventListener('appinstalled', () => {
-	    banner.classList.remove('show');
-	    deferredPrompt = null;
-	    //localStorage.setItem('pwaInstalled', 'true'); // ✅ จำไว้ว่า install แล้ว
-	});
-
-    // ─── iOS Guide ────────────────────────────
-    function isIOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    }
-    function isStandalone() {
-      return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-    }
-
-    if (isIOS() && !isStandalone()) {
-      setTimeout(() => document.getElementById('iosGuide').classList.add('show'), 3500);
-    }
-    document.getElementById('closeIos').addEventListener('click', () => {
-      document.getElementById('iosGuide').classList.remove('show');
-    });
-
-	  
-//================================= 20260331
-
+<script>
 // ==============================
 // 🔥 ตรวจ App Mode
 // ==============================
@@ -617,20 +514,70 @@ function isAppMode() {
 }
 
 // ==============================
-// 🔥 เก็บ install event
+// 🔥 Service Worker
 // ==============================
-let deferredPrompt;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('[eDS] SW registered'))
+      .catch(err => console.log('[eDS] SW failed:', err));
+  });
+}
+
+// ==============================
+// 🔥 Splash Loading
+// ==============================
+const loadTexts = ['กำลังโหลด...', 'เชื่อมต่อระบบ...', 'เตรียมข้อมูล...', 'พร้อมใช้งาน ✓'];
+let ti = 0;
+const lt = document.getElementById('loaderText');
+
+const textInterval = setInterval(() => {
+  if (!lt) return;
+  ti = (ti + 1) % loadTexts.length;
+  lt.style.opacity = '0';
+  setTimeout(() => { 
+    lt.textContent = loadTexts[ti]; 
+    lt.style.opacity = '1'; 
+  }, 200);
+}, 700);
+
+// ==============================
+// 🔥 Splash hide
+// ==============================
+const splash = document.getElementById('splash');
+
+function hideSplash() {
+  clearInterval(textInterval);
+  if (!splash) return;
+  splash.classList.add('fade-out');
+  setTimeout(() => splash.style.display = 'none', 700);
+}
+
+// โหลดเสร็จหรือ timeout
+const splashTimer = setTimeout(hideSplash, 2500);
+
+const iframe = document.getElementById('app');
+if (iframe) {
+  iframe.addEventListener('load', () => {
+    clearTimeout(splashTimer);
+    setTimeout(hideSplash, 500);
+  });
+}
+
+// ==============================
+// 🔥 Install Logic (Android)
+// ==============================
+let deferredPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
-  // 👉 โชว์ popup install ทันที
   showInstallPopup();
 });
 
 // ==============================
-// 🔥 Popup install
+// 🔥 Install Popup
 // ==============================
 function showInstallPopup() {
   if (isAppMode()) return;
@@ -654,7 +601,7 @@ function showInstallPopup() {
       font-family:Prompt,sans-serif;">
       
       <h2>📲 ติดตั้ง eDS</h2>
-      <p>เพื่อใช้งานแบบแอป ไม่มีแถบด้านบน</p>
+      <p>ใช้งานแบบแอป ไม่มีแถบด้านบน</p>
 
       <button id="installNow"
         style="margin-top:10px;
@@ -664,7 +611,7 @@ function showInstallPopup() {
                background:#06b06a;
                color:white;
                font-weight:bold;">
-        ติดตั้งเลย
+        ติดตั้ง
       </button>
     </div>
   `;
@@ -673,7 +620,7 @@ function showInstallPopup() {
 
   document.getElementById('installNow').onclick = async () => {
     if (!deferredPrompt) {
-      alert("กรุณากด Add to Home Screen");
+      alert("กรุณา Add to Home Screen");
       return;
     }
 
@@ -685,12 +632,36 @@ function showInstallPopup() {
 }
 
 // ==============================
-// 🔥 บังคับใช้ App Mode
+// 🔥 iOS Detection
+// ==============================
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+// ==============================
+// 🔥 iOS Guide
+// ==============================
+if (isIOS() && !isAppMode()) {
+  setTimeout(() => {
+    const ios = document.getElementById('iosGuide');
+    if (ios) ios.classList.add('show');
+  }, 2500);
+}
+
+const closeIos = document.getElementById('closeIos');
+if (closeIos) {
+  closeIos.addEventListener('click', () => {
+    document.getElementById('iosGuide').classList.remove('show');
+  });
+}
+
+// ==============================
+// 🔥 บังคับ App Mode
 // ==============================
 window.addEventListener('load', () => {
+
   if (!isAppMode()) {
 
-    // ❗ แสดงหน้าบังคับ install
     document.body.innerHTML = `
       <div style="
         height:100vh;
@@ -703,7 +674,8 @@ window.addEventListener('load', () => {
         color:white;
       ">
         <h2>📱 กรุณาติดตั้งแอป eDS</h2>
-        <p>เพื่อใช้งานแบบเต็มระบบ ไม่มีแถบด้านบน</p>
+        <p>เพื่อใช้งานแบบเต็มรูปแบบ ไม่มีแถบด้านบน</p>
+
         <button onclick="forceInstall()"
           style="
             margin-top:15px;
@@ -718,7 +690,7 @@ window.addEventListener('load', () => {
       </div>
     `;
 
-    window.forceInstall = async function() {
+    window.forceInstall = function() {
       if (deferredPrompt) {
         deferredPrompt.prompt();
       } else {
@@ -726,10 +698,29 @@ window.addEventListener('load', () => {
       }
     };
 
-    throw new Error("STOP WEB MODE");
+    return;
   }
+
 });
 
-  </script>
+// ==============================
+// 🔥 App Installed
+// ==============================
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  console.log("✅ eDS Installed");
+});
+
+// ==============================
+// 🔥 Optional Fullscreen (Safe)
+// ==============================
+if (isAppMode()) {
+  setTimeout(() => {
+    document.documentElement.requestFullscreen?.().catch(()=>{});
+  }, 500);
+}
+
+</script>
+	
 </body>
 </html>
