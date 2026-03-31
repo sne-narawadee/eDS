@@ -505,80 +505,7 @@
   </div>
 
   <script>
-	// ─── Redirect to PWA if installed ────────────────────────────
-	(function() {
-	    const isStandalone = 
-	        window.matchMedia('(display-mode: standalone)').matches || 
-	        window.navigator.standalone;
-	
-	    // ถ้าเปิดอยู่ใน PWA app แล้ว ไม่ต้อง redirect
-	    if (isStandalone) return;
-	
-	    // ถ้าเปิดใน browser และเคย install PWA แล้ว
-	    if (localStorage.getItem('pwaInstalled') === 'true') {
-	        
-	        // แสดง overlay แนะนำให้เปิดจาก app
-	        const overlay = document.createElement('div');
-	        overlay.style.cssText = `
-	            position: fixed; inset: 0; z-index: 99999;
-	            background: #054d31;
-	            display: flex; flex-direction: column;
-	            align-items: center; justify-content: center;
-	            gap: 20px; font-family: 'Prompt', sans-serif;
-	            color: white; text-align: center; padding: 32px;
-	        `;
-	        overlay.innerHTML = `
-	            <div style="
-	                width: 80px; height: 80px;
-	                background: linear-gradient(135deg, #06b06a, #0a7c4e);
-	                border-radius: 20px;
-	                display: flex; align-items: center; justify-content: center;
-	                box-shadow: 0 0 0 12px rgba(6,176,106,0.15), 0 20px 50px rgba(6,176,106,0.4);
-	                font-size: 40px;
-	            ">📄</div>
-	            <div>
-	                <div style="font-size: 20px; font-weight: 700; letter-spacing: 2px;">eDS</div>
-	                <div style="font-size: 13px; opacity: 0.6; margin-top: 4px;">SNE ELECTRONIC DOCUMENT</div>
-	            </div>
-	            <div style="
-	                background: rgba(255,255,255,0.08);
-	                border: 1px solid rgba(255,255,255,0.15);
-	                border-radius: 16px; padding: 16px 20px;
-	                font-size: 13px; line-height: 1.8; max-width: 300px;
-	            ">
-	                🔔 คุณติดตั้งแอป <strong>eDS</strong> ไว้แล้ว<br>
-	                กรุณาเปิดจาก <strong>ไอคอนบนหน้าจอหลัก</strong><br>
-	                เพื่อประสบการณ์ที่ดีที่สุด
-	            </div>
-	            <button id="openAppBtn" style="
-	                background: linear-gradient(135deg, #00d68f, #06b06a);
-	                color: #054d31; border: none;
-	                padding: 14px 32px; border-radius: 50px;
-	                font-size: 15px; font-weight: 700;
-	                cursor: pointer; font-family: 'Prompt', sans-serif;
-	                box-shadow: 0 4px 20px rgba(0,214,143,0.4);
-	            ">📲 เปิดแอป eDS</button>
-	            <span id="continueWeb" style="
-	                font-size: 12px; opacity: 0.4; cursor: pointer;
-	                text-decoration: underline; padding: 8px;
-	            ">ใช้งานผ่านเบราว์เซอร์ต่อไป</span>
-	        `;
-	        document.body.appendChild(overlay);
-	
-	        // ปุ่มเปิด app — ใช้ deep link หรือ focus PWA window
-	        document.getElementById('openAppBtn').addEventListener('click', () => {
-	            // พยายาม focus PWA window ที่เปิดอยู่
-	            window.open('/', '_blank', 'noreferrer');
-	            // หรือถ้าต้องการใช้ custom URL scheme สามารถเพิ่มได้ที่นี่
-	        });
-	
-	        // ปุ่มใช้งานผ่าน browser ต่อ
-	        document.getElementById('continueWeb').addEventListener('click', () => {
-	            overlay.remove();
-	        });
-	    }
-	})();
-  
+
 	// Auto maximize เมื่อเปิดแอป PC
 	// Maximize window เมื่อเปิดเป็น Progressive web application (PWA)
 	if (window.matchMedia('(display-mode: standalone)').matches ||
@@ -660,7 +587,7 @@
 	window.addEventListener('appinstalled', () => {
 	    banner.classList.remove('show');
 	    deferredPrompt = null;
-	    localStorage.setItem('pwaInstalled', 'true'); // ✅ จำไว้ว่า install แล้ว
+	    //localStorage.setItem('pwaInstalled', 'true'); // ✅ จำไว้ว่า install แล้ว
 	});
 
     // ─── iOS Guide ────────────────────────────
