@@ -259,65 +259,58 @@
       border: 1px solid rgba(0,214,143,0.25);
       color: white;
       border-radius: 20px;
-      padding: 14px 16px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
-      font-family: 'Prompt', sans-serif;
-      backdrop-filter: blur(16px);
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
-      opacity: 0;
-    }
-
-    #installBanner.show {
+      padding: 16px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
+      opacity: 0;
+      font-family: 'Prompt', sans-serif;
+    }
+    #installBanner.show {
+      display: flex;
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
-
     .install-icon-wrap {
       width: 44px; height: 44px;
-      flex-shrink: 0;
-      background: linear-gradient(135deg, var(--g2), var(--g3));
+      background: rgba(255,255,255,0.12);
       border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .install-icon-wrap svg {
+      width: 24px; height: 24px;
+      fill: var(--g3);
+    }
+    .install-info {
+      flex: 1;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 16px rgba(0,214,143,0.4);
+      flex-direction: column;
+      gap: 2px;
     }
-
-    .install-icon-wrap svg { width: 24px; height: 24px; fill: white; }
-
-    .install-info { flex: 1; min-width: 0; }
-    .install-info strong { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .install-info span { font-size: 11px; opacity: 0.6; font-weight: 300; }
-
+    .install-info strong { font-size: 14px; font-weight: 600; }
+    .install-info span   { font-size: 11px; opacity: 0.65; }
     #installBtn {
-      flex-shrink: 0;
-      background: linear-gradient(135deg, var(--g3), var(--g2));
-      color: var(--g-dark);
+      background: var(--g3);
+      color: var(--text-dark);
       border: none;
-      padding: 9px 18px;
-      border-radius: 40px;
+      border-radius: 10px;
+      padding: 8px 16px;
       font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
+      font-weight: 700;
       font-family: 'Prompt', sans-serif;
-      box-shadow: 0 4px 14px rgba(0,214,143,0.4);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    #installBtn:active { transform: scale(0.93); box-shadow: none; }
-
-    #closeInstall {
-      flex-shrink: 0;
       cursor: pointer;
-      opacity: 0.45;
-      font-size: 18px;
-      padding: 4px;
-      line-height: 1;
-      transition: opacity 0.2s;
+      flex-shrink: 0;
     }
-    #closeInstall:hover { opacity: 0.8; }
+    #closeInstall {
+      font-size: 16px;
+      opacity: 0.4;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 4px;
+    }
 
     /* =========================================
        IOS GUIDE TOOLTIP
@@ -458,11 +451,16 @@
     </div>
   </div>
 
-  <!-- ===== MAIN APP IFRAME ===== -->
+  <!-- ===== MAIN APP IFRAME =====
+       credentialless : ป้องกัน Chrome ส่ง/ตรวจสอบ credentials (password) ของ Google Account ผ่าน iframe
+       referrerpolicy : ไม่ส่ง referrer header ไปยัง Apps Script เพื่อความเป็นส่วนตัว
+  -->
   <iframe
     id="app"
     src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec"
     allow="geolocation; camera; microphone"
+    credentialless
+    referrerpolicy="no-referrer"
     frameborder="0"
     scrolling="auto">
   </iframe>
@@ -530,12 +528,12 @@
     const splashTimer = setTimeout(hideSplash, 2500);
     document.getElementById('app').addEventListener('load', () => {
       clearTimeout(splashTimer);
-      setTimeout(hideSplash, 600); // brief pause so app renders
+      setTimeout(hideSplash, 600);
     });
 
     // ─── Android Install Prompt ───────────────
     let deferredPrompt;
-    const banner   = document.getElementById('installBanner');
+    const banner      = document.getElementById('installBanner');
     const installBtn  = document.getElementById('installBtn');
     const closeInstall = document.getElementById('closeInstall');
 
