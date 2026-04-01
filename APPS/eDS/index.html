@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>SNE-eDocument (eDS)</title>
 
   <!-- PWA -->
@@ -37,14 +37,13 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-	/* ใหม่ — ให้ตรงกับ Login form */
-	html, body {
-	    width: 100%; height: 100%;
-	    overflow: hidden;
-	    background: #808080;  /* ✅ สีเทาเดียวกับ Google Apps Script Login */
-	    font-family: 'Prompt', sans-serif;
-	}
-	  
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--g-dark);
+      font-family: 'Prompt', sans-serif;
+    }
+
     /* =========================================
        SPLASH SCREEN
     ========================================= */
@@ -236,98 +235,88 @@
     /* =========================================
        IFRAME
     ========================================= */
-	#app {
-	  position: fixed;
-	  top: 0; left: 0;
-	  width: 100vw;
-	  height: 100vh;
-	  border: 0;
-	  display: block;
-	  background: white;
-	}
+    #app {
+      border: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: white;
+    }
 
     /* =========================================
        INSTALL BANNER — Android
     ========================================= */
-	#installBanner {
-	    display: none;
-	    position: fixed;
-	    bottom: 20px;
-	    right: 16px;          /* ✅ เปลี่ยนจาก left:50% → right */
-	    left: auto;           /* ✅ ยกเลิก left */
-	    transform: translateY(80px);  /* ✅ ลบ translateX ออก */
-	    z-index: 8888;
-	    width: auto;          /* ✅ ไม่ fixed width */
-	    max-width: 220px;     /* ✅ เล็กลง */
-	    background: linear-gradient(135deg, var(--g1) 0%, var(--g-dark) 100%);
-	    border: 1px solid rgba(0,214,143,0.25);
-	    color: white;
-	    border-radius: 16px;  /* ✅ เล็กลง */
-	    padding: 10px 12px;   /* ✅ เล็กลง */
-	    box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
-	    font-family: 'Prompt', sans-serif;
-	    backdrop-filter: blur(16px);
-	    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
-	    opacity: 0;
-	}
-	
-	#installBanner.show {
-	    display: flex;
-	    align-items: center;
-	    gap: 8px;             /* ✅ เล็กลง */
-	    transform: translateY(0);   /* ✅ ลบ translateX ออก */
-	    opacity: 1;
-	}
-	
-	.install-icon-wrap {
-	    width: 34px; height: 34px;   /* ✅ เล็กลง */
-	    flex-shrink: 0;
-	    background: linear-gradient(135deg, var(--g2), var(--g3));
-	    border-radius: 10px;
-	    display: flex;
-	    align-items: center;
-	    justify-content: center;
-	    box-shadow: 0 4px 16px rgba(0,214,143,0.4);
-	}
-	
-	.install-icon-wrap svg { width: 18px; height: 18px; fill: white; } /* ✅ เล็กลง */
-	
-	.install-info { flex: 1; min-width: 0; }
-	.install-info strong { 
-	    display: block; font-size: 12px;   /* ✅ เล็กลง */
-	    font-weight: 600; 
-	    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-	}
-	.install-info span { 
-	    font-size: 10px;   /* ✅ เล็กลง */
-	    opacity: 0.6; font-weight: 300; 
-	    display: none;     /* ✅ ซ่อน subtitle ให้กระชับ */
-	}
-	
-	#installBtn {
-	    flex-shrink: 0;
-	    background: linear-gradient(135deg, var(--g3), var(--g2));
-	    color: var(--g-dark);
-	    border: none;
-	    padding: 7px 12px;    /* ✅ เล็กลง */
-	    border-radius: 40px;
-	    font-size: 11px;      /* ✅ เล็กลง */
-	    font-weight: 600;
-	    cursor: pointer;
-	    font-family: 'Prompt', sans-serif;
-	    box-shadow: 0 4px 14px rgba(0,214,143,0.4);
-	    transition: transform 0.15s, box-shadow 0.15s;
-	}
-	
-	#closeInstall {
-	    flex-shrink: 0;
-	    cursor: pointer;
-	    opacity: 0.45;
-	    font-size: 14px;   /* ✅ เล็กลง */
-	    padding: 4px;
-	    line-height: 1;
-	    transition: opacity 0.2s;
-	}
+    #installBanner {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      z-index: 8888;
+      width: calc(100% - 32px);
+      max-width: 380px;
+      background: linear-gradient(135deg, var(--g1) 0%, var(--g-dark) 100%);
+      border: 1px solid rgba(0,214,143,0.25);
+      color: white;
+      border-radius: 20px;
+      padding: 14px 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+      font-family: 'Prompt', sans-serif;
+      backdrop-filter: blur(16px);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+      opacity: 0;
+    }
+
+    #installBanner.show {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .install-icon-wrap {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--g2), var(--g3));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,214,143,0.4);
+    }
+
+    .install-icon-wrap svg { width: 24px; height: 24px; fill: white; }
+
+    .install-info { flex: 1; min-width: 0; }
+    .install-info strong { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .install-info span { font-size: 11px; opacity: 0.6; font-weight: 300; }
+
+    #installBtn {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--g3), var(--g2));
+      color: var(--g-dark);
+      border: none;
+      padding: 9px 18px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Prompt', sans-serif;
+      box-shadow: 0 4px 14px rgba(0,214,143,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #installBtn:active { transform: scale(0.93); box-shadow: none; }
+
+    #closeInstall {
+      flex-shrink: 0;
+      cursor: pointer;
+      opacity: 0.45;
+      font-size: 18px;
+      padding: 4px;
+      line-height: 1;
+      transition: opacity 0.2s;
+    }
     #closeInstall:hover { opacity: 0.8; }
 
     /* =========================================
@@ -400,6 +389,11 @@
       padding: 4px 12px;
       border: 1px solid rgba(255,255,255,0.2);
       border-radius: 20px;
+    }
+
+    /* PC: hide banners */
+    @media (min-width: 1024px) {
+      #installBanner, #iosGuide { display: none !important; }
     }
 
     @media (prefers-color-scheme: dark) {
@@ -504,223 +498,84 @@
     <span id="closeIos">ปิด ✕</span>
   </div>
 
-<script>
-// ==============================
-// 🔥 ตรวจ App Mode
-// ==============================
-function isAppMode() {
-  return window.matchMedia('(display-mode: standalone)').matches 
-      || window.navigator.standalone;
-}
-
-// ==============================
-// 🔥 Service Worker
-// ==============================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('[eDS] SW registered'))
-      .catch(err => console.log('[eDS] SW failed:', err));
-  });
-}
-
-// ==============================
-// 🔥 Splash Loading
-// ==============================
-const loadTexts = ['กำลังโหลด...', 'เชื่อมต่อระบบ...', 'เตรียมข้อมูล...', 'พร้อมใช้งาน ✓'];
-let ti = 0;
-const lt = document.getElementById('loaderText');
-
-const textInterval = setInterval(() => {
-  if (!lt) return;
-  ti = (ti + 1) % loadTexts.length;
-  lt.style.opacity = '0';
-  setTimeout(() => { 
-    lt.textContent = loadTexts[ti]; 
-    lt.style.opacity = '1'; 
-  }, 200);
-}, 700);
-
-// ==============================
-// 🔥 Splash hide
-// ==============================
-const splash = document.getElementById('splash');
-
-function hideSplash() {
-  clearInterval(textInterval);
-  if (!splash) return;
-  splash.classList.add('fade-out');
-  setTimeout(() => splash.style.display = 'none', 700);
-}
-
-// โหลดเสร็จหรือ timeout
-const splashTimer = setTimeout(hideSplash, 2500);
-
-const iframe = document.getElementById('app');
-if (iframe) {
-  iframe.addEventListener('load', () => {
-    clearTimeout(splashTimer);
-    setTimeout(hideSplash, 500);
-  });
-}
-
-// ==============================
-// 🔥 Install Logic (Android)
-// ==============================
-let deferredPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-
-  showInstallPopup();
-});
-
-// ==============================
-// 🔥 Install Popup
-// ==============================
-function showInstallPopup() {
-  if (isAppMode()) return;
-
-  const box = document.createElement('div');
-  box.style = `
-    position:fixed; inset:0;
-    background:#000c;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:99999;
-  `;
-
-  box.innerHTML = `
-    <div style="
-      background:white;
-      padding:28px;
-      border-radius:20px;
-      text-align:center;
-      font-family:Prompt,sans-serif;">
-      
-      <h2>📲 ติดตั้ง eDS</h2>
-      <p>ใช้งานแบบแอป ไม่มีแถบด้านบน</p>
-
-      <button id="installNow"
-        style="margin-top:10px;
-               padding:10px 20px;
-               border:none;
-               border-radius:30px;
-               background:#06b06a;
-               color:white;
-               font-weight:bold;">
-        ติดตั้ง
-      </button>
-    </div>
-  `;
-
-  document.body.appendChild(box);
-
-  document.getElementById('installNow').onclick = async () => {
-    if (!deferredPrompt) {
-      alert("กรุณา Add to Home Screen");
-      return;
+  <script>
+    // ─── Service Worker ───────────────────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('[eDS] SW registered'))
+          .catch(err => console.log('[eDS] SW failed:', err));
+      });
     }
 
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    box.remove();
-  };
-}
+    // ─── Loading text cycle ───────────────────
+    const loadTexts = ['กำลังโหลด...', 'เชื่อมต่อระบบ...', 'เตรียมข้อมูล...', 'พร้อมใช้งาน ✓'];
+    let ti = 0;
+    const lt = document.getElementById('loaderText');
+    const textInterval = setInterval(() => {
+      ti = (ti + 1) % loadTexts.length;
+      lt.style.opacity = '0';
+      setTimeout(() => { lt.textContent = loadTexts[ti]; lt.style.opacity = '1'; }, 200);
+    }, 700);
 
-// ==============================
-// 🔥 iOS Detection
-// ==============================
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-}
+    // ─── Splash dismiss ───────────────────────
+    const splash = document.getElementById('splash');
+    function hideSplash() {
+      clearInterval(textInterval);
+      splash.classList.add('fade-out');
+      setTimeout(() => splash.style.display = 'none', 750);
+    }
 
-// ==============================
-// 🔥 iOS Guide
-// ==============================
-if (isIOS() && !isAppMode()) {
-  setTimeout(() => {
-    const ios = document.getElementById('iosGuide');
-    if (ios) ios.classList.add('show');
-  }, 2500);
-}
+    // Dismiss after 2.5s OR when iframe loads
+    const splashTimer = setTimeout(hideSplash, 2500);
+    document.getElementById('app').addEventListener('load', () => {
+      clearTimeout(splashTimer);
+      setTimeout(hideSplash, 600); // brief pause so app renders
+    });
 
-const closeIos = document.getElementById('closeIos');
-if (closeIos) {
-  closeIos.addEventListener('click', () => {
-    document.getElementById('iosGuide').classList.remove('show');
-  });
-}
+    // ─── Android Install Prompt ───────────────
+    let deferredPrompt;
+    const banner   = document.getElementById('installBanner');
+    const installBtn  = document.getElementById('installBtn');
+    const closeInstall = document.getElementById('closeInstall');
 
-// ==============================
-// 🔥 บังคับ App Mode
-// ==============================
-window.addEventListener('load', () => {
-
-  if (!isAppMode()) {
-
-    document.body.innerHTML = `
-      <div style="
-        height:100vh;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        flex-direction:column;
-        font-family:Prompt,sans-serif;
-        background:#0a7c4e;
-        color:white;
-      ">
-        <h2>📱 กรุณาติดตั้งแอป eDS</h2>
-        <p>เพื่อใช้งานแบบเต็มรูปแบบ ไม่มีแถบด้านบน</p>
-
-        <button onclick="forceInstall()"
-          style="
-            margin-top:15px;
-            padding:12px 24px;
-            border:none;
-            border-radius:30px;
-            background:#00d68f;
-            color:#054d31;
-            font-weight:bold;">
-          ติดตั้ง
-        </button>
-      </div>
-    `;
-
-    window.forceInstall = function() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-      } else {
-        alert("กรุณาใช้เมนู Add to Home Screen");
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!isIOS()) {
+        setTimeout(() => banner.classList.add('show'), 1200);
       }
-    };
+    });
 
-    return;
-  }
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      banner.classList.remove('show');
+    });
 
-});
+    closeInstall.addEventListener('click', () => banner.classList.remove('show'));
 
-// ==============================
-// 🔥 App Installed
-// ==============================
-window.addEventListener('appinstalled', () => {
-  deferredPrompt = null;
-  console.log("✅ eDS Installed");
-});
+    window.addEventListener('appinstalled', () => {
+      banner.classList.remove('show');
+      deferredPrompt = null;
+    });
 
-// ==============================
-// 🔥 Optional Fullscreen (Safe)
-// ==============================
-if (isAppMode()) {
-  setTimeout(() => {
-    document.documentElement.requestFullscreen?.().catch(()=>{});
-  }, 500);
-}
+    // ─── iOS Guide ────────────────────────────
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    }
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    }
 
-</script>
-	
+    if (isIOS() && !isStandalone()) {
+      setTimeout(() => document.getElementById('iosGuide').classList.add('show'), 3500);
+    }
+    document.getElementById('closeIos').addEventListener('click', () => {
+      document.getElementById('iosGuide').classList.remove('show');
+    });
+  </script>
 </body>
 </html>
