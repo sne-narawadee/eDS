@@ -1,80 +1,29 @@
-// Service Worker for eDS PWA
-// Version: 1.0.0
+const CACHE = 'eDS-v1';
+const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
-const CACHE_NAME = 'eDS-cache-v1';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-144.png',  // ✅ เพิ่ม
-  './icons/icon-96.png',   // ✅ เพิ่ม
-  'https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap' // ✅ แก้ font ให้ตรงกับที่ใช้จริง
-];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
 
-// Install: cache shell assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching app shell...');
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim())
   );
 });
 
-// Activate: clean up old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[SW] Removing old cache:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-// Fetch: Cache-first for shell, Network-first for app
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Skip cross-origin requests that aren't our app
-  if (url.origin !== location.origin && !url.href.includes('fonts.googleapis.com') && !url.href.includes('fonts.gstatic.com')) {
-    return;
-  }
-
-  // App shell: cache first
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type === 'opaque') {
-          return response;
+self.addEventListener('fetch', e => {
+  if (!e.request.url.startsWith('http')) return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
+        if (res && res.status === 200 && res.type !== 'opaque') {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
         }
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
-        return response;
-      }).catch(() => {
-        // Offline fallback
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
+        return res;
+      }).catch(() => e.request.mode === 'navigate' ? caches.match('./index.html') : undefined);
     })
   );
-});
-
-// Background sync (optional)
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
 });
