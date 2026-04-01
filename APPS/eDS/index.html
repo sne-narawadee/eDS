@@ -497,6 +497,21 @@
   </div>
 
   <script>
+    // ─── Auto Maximize (PC only) ──────────────
+    // ตรวจสอบว่าเป็น PC หรือไม่ (ไม่ใช่ Android/iOS)
+    (function autoMaximizePC() {
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if (isMobile) return; // ไม่ทำอะไรบน mobile เลย
+
+      try {
+        // ขยาย window ให้เต็มจอเฉพาะ PC
+        if (window.outerWidth < screen.availWidth || window.outerHeight < screen.availHeight) {
+          window.moveTo(0, 0);
+          window.resizeTo(screen.availWidth, screen.availHeight);
+        }
+      } catch(e) {}
+    })();
+
     // ─── Service Worker ───────────────────────
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
