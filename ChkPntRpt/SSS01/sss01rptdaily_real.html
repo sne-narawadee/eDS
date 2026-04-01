@@ -3,75 +3,34 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="theme-color" content="#8B0000">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>eDS-Checkpoint Report</title>
     <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8f9fa; }
-        iframe { border: 0; width: 100%; height: 100%; display: block; }
-        
-        #navButtons {
-            position: fixed; top: 15px; left: 15px;
-            display: flex; gap: 10px; z-index: 999999;
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* ปิดการเลื่อน */
         }
-
-        .float-btn {
-            background-color: #8B0000; color: white;
-            padding: 10px 18px; border-radius: 50px;
-            font-size: 14px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3);
-            text-decoration: none; display: flex; align-items: center;
+        iframe {
+            border: 0; /* ปิดขอบของ iframe */
+            width: 100%;
+            height: 100%;
+            display: block; /* ปิดช่องว่างภายใน iframe */
         }
-        
-        #backBtn { display: none; } /* ซ่อนไว้ก่อน */
     </style>
 </head>
 <body>
-
-    <div id="navButtons">
-        <div id="backBtn" class="float-btn" onclick="goBack()">⬅️ ย้อนกลับ</div>
-        <a href="https://sne-narawadee.github.io/eDS" target="_top" class="float-btn">🏠 หน้าหลัก</a>
-    </div>
-
-    <iframe id="app" name="app" src="https://script.google.com/macros/s/AKfycbwCtWZZpeaMIVoSapDpOBXsQSsuLbhjjyFksBWPEv_ZaEROb18p8IWu5RfBLRU_N8tB/exec" allow="geolocation"></iframe>
-
-    <script>
-        const frame = document.getElementById('app');
-        const backBtn = document.getElementById('backBtn');
-        const mainAppUrl = "https://script.google.com/macros/s/AKfycbwCtWZZpeaMIVoSapDpOBXsQSsuLbhjjyFksBWPEv_ZaEROb18p8IWu5RfBLRU_N8tB/exec";
-
-        // ตรวจสอบการโหลดของ Iframe
-        frame.onload = function() {
-            // ถ้า URL ใน iframe เปลี่ยนไปเป็นหน้า Google Drive ให้โชว์ปุ่มย้อนกลับ
-            try {
-                const currentUrl = frame.contentWindow.location.href;
-                if (currentUrl.includes('drive.google.com')) {
-                    backBtn.style.display = 'flex';
-                }
-            } catch (e) {
-                // กรณีข้ามโดเมนจะเช็ค URL ตรงๆ ไม่ได้ แต่ปุ่มจะโชว์เมื่อมีการเปลี่ยนหน้า
-                // เราใช้วิธีเช็คว่าถ้าไม่ใช่ URL หลักของแอป ให้โชว์ปุ่ม
-                if (frame.src !== mainAppUrl) {
-                   backBtn.style.display = 'flex';
-                }
-            }
-        };
-
-        // ฟังก์ชันย้อนกลับ
-        function goBack() {
-            frame.src = mainAppUrl;
-            backBtn.style.display = 'none';
-        }
-
-        // พิเศษ: สำหรับบาง Browser ที่บล็อก iframe โหลดทับ
-        // เราจะดักฟังการคลิกเพื่อโชว์ปุ่มย้อนกลับ
-        window.addEventListener('blur', function() {
-            setTimeout(function() {
-                // ถ้าหน้าจอเปลี่ยนสถานะ ให้ลองโชว์ปุ่มย้อนกลับไว้ก่อนเพื่อความปลอดภัย
-                backBtn.style.display = 'flex';
-            }, 1000);
-        });
-    </script>
+    <iframe
+      id="app"
+      src="https://script.google.com/macros/s/AKfycbwCtWZZpeaMIVoSapDpOBXsQSsuLbhjjyFksBWPEv_ZaEROb18p8IWu5RfBLRU_N8tB/exec"
+      allow="geolocation"
+      frameborder="0"
+      scrolling="no">
+    </iframe>
 </body>
 </html>
+
+
 
