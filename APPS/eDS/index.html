@@ -245,73 +245,72 @@
     }
 
     /* =========================================
-       INSTALL BANNER — Android
+       INSTALL FAB — ปุ่มขนาดเล็กมุมขวาล่าง
     ========================================= */
     #installBanner {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      pointer-events: none;
       position: fixed;
       bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
+      right: 16px;
       z-index: 8888;
-      width: calc(100% - 32px);
-      max-width: 380px;
-      background: linear-gradient(135deg, var(--g1) 0%, var(--g-dark) 100%);
-      border: 1px solid rgba(0,214,143,0.25);
+      background: linear-gradient(135deg, var(--g2) 0%, var(--g1) 100%);
+      border: 1px solid rgba(0,214,143,0.35);
       color: white;
-      border-radius: 20px;
-      padding: 16px 20px;
-      display: flex;
+      border-radius: 50px;
+      padding: 8px 14px 8px 10px;
       align-items: center;
-      gap: 14px;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
-      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
+      gap: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
       opacity: 0;
+      transform: translateY(20px) scale(0.9);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
       font-family: 'Prompt', sans-serif;
+      cursor: pointer;
     }
     #installBanner.show {
-      display: flex;
-      transform: translateX(-50%) translateY(0);
+      visibility: visible;
+      pointer-events: auto;
       opacity: 1;
+      transform: translateY(0) scale(1);
+      animation: fabPulse 2.8s ease-in-out 1s infinite;
+    }
+    @keyframes fabPulse {
+      0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,214,143,0.4); }
+      50%      { box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 8px rgba(0,214,143,0); }
     }
     .install-icon-wrap {
-      width: 44px; height: 44px;
-      background: rgba(255,255,255,0.12);
-      border-radius: 12px;
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     .install-icon-wrap svg {
-      width: 24px; height: 24px;
-      fill: var(--g3);
+      width: 16px; height: 16px;
+      fill: white;
     }
     .install-info {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
+      line-height: 1.2;
     }
-    .install-info strong { font-size: 14px; font-weight: 600; }
-    .install-info span   { font-size: 11px; opacity: 0.65; }
+    .install-info strong { font-size: 11px; font-weight: 600; }
+    .install-info span   { font-size: 9px; opacity: 0.7; }
     #installBtn {
-      background: var(--g3);
-      color: var(--text-dark);
-      border: none;
-      border-radius: 10px;
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      font-family: 'Prompt', sans-serif;
-      cursor: pointer;
-      flex-shrink: 0;
+      display: none; /* ซ่อน — ทั้ง banner คือปุ่มคลิกได้เลย */
     }
     #closeInstall {
-      font-size: 16px;
-      opacity: 0.4;
+      font-size: 13px;
+      opacity: 0.5;
       cursor: pointer;
       flex-shrink: 0;
-      padding: 4px;
+      padding: 2px 2px 2px 4px;
+      line-height: 1;
     }
+    #closeInstall:hover { opacity: 1; }
 
     /* =========================================
        IOS GUIDE TOOLTIP
@@ -385,9 +384,9 @@
       border-radius: 20px;
     }
 
-    /* PC: hide banners */
+    /* PC: ซ่อนเฉพาะ iOS guide (ไม่เกี่ยวกับ PC) */
     @media (min-width: 1024px) {
-      #installBanner, #iosGuide { display: none !important; }
+      #iosGuide { display: none !important; }
     }
 
     @media (prefers-color-scheme: dark) {
@@ -453,14 +452,12 @@
   </div>
 
   <!-- ===== MAIN APP IFRAME =====
-       credentialless : ป้องกัน Chrome ส่ง/ตรวจสอบ credentials (password) ของ Google Account ผ่าน iframe
        referrerpolicy : ไม่ส่ง referrer header ไปยัง Apps Script เพื่อความเป็นส่วนตัว
   -->
   <iframe
     id="app"
     src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec"
     allow="geolocation; camera; microphone"
-    credentialless
     referrerpolicy="no-referrer"
     frameborder="0"
     scrolling="auto">
@@ -547,46 +544,142 @@
       setTimeout(hideSplash, 600);
     });
 
-    // ─── Android Install Prompt ───────────────
-    let deferredPrompt;
-    const banner      = document.getElementById('installBanner');
-    const installBtn  = document.getElementById('installBtn');
-    const closeInstall = document.getElementById('closeInstall');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (!isIOS()) {
-        setTimeout(() => banner.classList.add('show'), 1200);
-      }
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      banner.classList.remove('show');
-    });
-
-    closeInstall.addEventListener('click', () => banner.classList.remove('show'));
-
-    window.addEventListener('appinstalled', () => {
-      banner.classList.remove('show');
-      deferredPrompt = null;
-    });
-
-    // ─── iOS Guide ────────────────────────────
+    // ─── Helpers ──────────────────────────────
     function isIOS() {
       return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     }
     function isStandalone() {
-      return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+      return window.matchMedia('(display-mode: standalone)').matches
+          || window.navigator.standalone === true;
+    }
+    const INSTALLED_KEY = 'eDS_pwa_installed';
+    function markInstalled() {
+      try { localStorage.setItem(INSTALLED_KEY, '1'); } catch(e) {}
+    }
+    function isInstalled() {
+      // ถ้า run ใน standalone mode ถือว่าติดตั้งแล้ว แต่ไม่ต้องแสดงปุ่ม (handled separately)
+      try { return localStorage.getItem(INSTALLED_KEY) === '1'; } catch(e) { return false; }
+    }
+    // เปิด console แล้วพิมพ์ resetInstallFlag() เพื่อ reset สถานะถ้าต้องการทดสอบ
+    window.resetInstallFlag = function() {
+      localStorage.removeItem(INSTALLED_KEY);
+      console.log('[eDS] install flag cleared, refresh to see button');
+    };
+
+    // ─── Deep-link redirect ───────────────────
+    // ถ้าผู้ใช้เปิดจาก browser แต่ติดตั้ง PWA ไว้แล้ว
+    // ให้ redirect ไปที่ standalone scope เพื่อเปิด app แทน
+    (function checkDeepLink() {
+      if (isInstalled() && !isStandalone()) {
+        // ถ้ามี query string / hash ให้ส่งต่อด้วย
+        const target = window.location.href;
+        // บน Android Chrome: เพียงแค่ reload จะทำให้ OS เสนอเปิด PWA
+        // เราช่วยด้วยการแสดง toast แนะนำก่อน
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+          position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+          background:rgba(5,77,49,0.95);color:#fff;padding:10px 20px;
+          border-radius:30px;font-size:12px;font-family:'Prompt',sans-serif;
+          z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.4);
+          border:1px solid rgba(0,214,143,0.3);white-space:nowrap;
+        `;
+        toast.textContent = '📱 เปิดแอป eDS ที่ติดตั้งไว้...';
+        document.body.appendChild(toast);
+        // พยายาม open PWA ผ่าน custom URL scheme หรือ focus window
+        setTimeout(() => {
+          window.location.href = window.location.origin + window.location.pathname
+            + '?source=deeplink' + (window.location.search ? '&' + window.location.search.slice(1) : '')
+            + window.location.hash;
+        }, 800);
+      }
+    })();
+
+    // ─── Android / iOS Install ────────────────
+    let deferredPrompt = null;
+    const banner       = document.getElementById('installBanner');
+    const closeInstall = document.getElementById('closeInstall');
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+    // จับ event ถ้า browser ส่งมา (Chrome Android ที่รองรับ)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    // ─── แสดงปุ่มหลัง splash หายไป ────────────
+    // แสดงปุ่มเสมอบน mobile ที่ยังไม่ได้ติดตั้ง ไม่ว่า browser จะส่ง event หรือไม่
+    function tryShowInstallBtn() {
+      // ถ้าเปิดใน standalone (PWA app) แล้ว ไม่ต้องแสดง
+      if (isStandalone()) {
+        console.log('[eDS] standalone mode, hide install btn');
+        return;
+      }
+      // ถ้าเคยติดตั้งแล้ว ไม่ต้องแสดง
+      if (isInstalled()) {
+        console.log('[eDS] already installed, hide install btn');
+        return;
+      }
+
+      // iOS: เปลี่ยนข้อความ
+      if (isIOS()) {
+        document.querySelector('#installBanner .install-info strong').textContent = 'เพิ่มลงหน้าจอหลัก';
+        document.querySelector('#installBanner .install-info span').textContent = 'กด Share → Add to Home Screen';
+      }
+
+      console.log('[eDS] showing install button');
+      banner.classList.add('show');
     }
 
-    if (isIOS() && !isStandalone()) {
-      setTimeout(() => document.getElementById('iosGuide').classList.add('show'), 3500);
-    }
+    // รอ splash หาย แล้วแสดงปุ่ม
+    setTimeout(tryShowInstallBtn, 3200);
+
+    // ─── คลิกปุ่ม FAB ────────────────────────
+    banner.addEventListener('click', async (e) => {
+      if (e.target === closeInstall) return;
+
+      if (isIOS()) {
+        // iOS: toggle guide แทน
+        banner.classList.remove('show');
+        document.getElementById('iosGuide').classList.add('show');
+        return;
+      }
+
+      if (deferredPrompt) {
+        // Android Chrome: เรียก native install prompt
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        banner.classList.remove('show');
+        if (outcome === 'accepted') markInstalled();
+      } else {
+        // Fallback: แสดงคำแนะนำ manual (Chrome menu → "Add to Home Screen")
+        banner.classList.remove('show');
+        const tip = document.createElement('div');
+        tip.style.cssText = `
+          position:fixed;bottom:72px;right:16px;z-index:9999;
+          background:rgba(5,77,49,0.97);color:#fff;padding:12px 16px;
+          border-radius:14px;font-size:12px;font-family:'Prompt',sans-serif;
+          box-shadow:0 4px 20px rgba(0,0,0,0.4);border:1px solid rgba(0,214,143,0.3);
+          max-width:220px;line-height:1.6;
+        `;
+        tip.innerHTML = '📌 กดเมนู <strong>⋮</strong> ของ Chrome<br>แล้วเลือก <strong>"เพิ่มในหน้าจอหลัก"</strong>';
+        document.body.appendChild(tip);
+        setTimeout(() => tip.remove(), 5000);
+      }
+    });
+
+    closeInstall.addEventListener('click', (e) => {
+      e.stopPropagation();
+      banner.classList.remove('show');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      banner.classList.remove('show');
+      deferredPrompt = null;
+      markInstalled();
+    });
+
+    // ─── iOS Guide ────────────────────────────
     document.getElementById('closeIos').addEventListener('click', () => {
       document.getElementById('iosGuide').classList.remove('show');
     });
