@@ -248,7 +248,9 @@
        INSTALL FAB — ปุ่มขนาดเล็กมุมขวาล่าง
     ========================================= */
     #installBanner {
-      display: none;
+      display: flex;
+      visibility: hidden;
+      pointer-events: none;
       position: fixed;
       bottom: 20px;
       right: 16px;
@@ -260,18 +262,19 @@
       padding: 8px 14px 8px 10px;
       align-items: center;
       gap: 7px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,214,143,0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.35);
       opacity: 0;
-      transform: translateY(16px) scale(0.92);
-      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      transform: translateY(20px) scale(0.9);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
       font-family: 'Prompt', sans-serif;
       cursor: pointer;
-      animation: fabPulse 2.8s ease-in-out 1.5s infinite;
     }
     #installBanner.show {
-      display: flex;
+      visibility: visible;
+      pointer-events: auto;
       opacity: 1;
       transform: translateY(0) scale(1);
+      animation: fabPulse 2.8s ease-in-out 1s infinite;
     }
     @keyframes fabPulse {
       0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 0 rgba(0,214,143,0.4); }
@@ -602,19 +605,21 @@
     // ─── แสดงปุ่มหลัง splash หายไป ────────────
     // แสดงปุ่มเสมอบน mobile ที่ยังไม่ได้ติดตั้ง ไม่ว่า browser จะส่ง event หรือไม่
     function tryShowInstallBtn() {
-      if (isInstalled() || isStandalone()) return;   // ติดตั้งแล้ว / เปิดใน app แล้ว → ซ่อน
-      // PC: แสดงได้เช่นกัน (Chrome/Edge รองรับ PWA install)
+      if (isStandalone()) return;   // เปิดใน standalone app แล้ว → ซ่อน
+      if (isInstalled()) return;    // ติดตั้งแล้ว → ซ่อน
 
-      // iOS: แสดงปุ่ม FAB พร้อมข้อความ "เพิ่มลงหน้าจอหลัก"
+      // iOS: เปลี่ยนข้อความให้เหมาะสม
       if (isIOS()) {
         document.querySelector('#installBanner .install-info strong').textContent = 'เพิ่มลงหน้าจอหลัก';
         document.querySelector('#installBanner .install-info span').textContent = 'กด Share แล้วเลือก Add to Home Screen';
       }
-      setTimeout(() => banner.classList.add('show'), 1800);
+
+      // แสดงปุ่มเลย
+      banner.classList.add('show');
     }
 
-    // รอ splash ก่อน แล้วค่อยแสดง
-    setTimeout(tryShowInstallBtn, 3000);
+    // รอ splash หาย (2.5s) + buffer 1s = 3.5s
+    setTimeout(tryShowInstallBtn, 3500);
 
     // ─── คลิกปุ่ม FAB ────────────────────────
     banner.addEventListener('click', async (e) => {
