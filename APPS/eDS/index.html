@@ -1063,60 +1063,6 @@
     });
 
 
-    
-// ─── Detect Line In-App Browser ──────────
-function isLineIAB() {
-  return /Line\//i.test(navigator.userAgent);
-}
-
-if (isLineIAB()) {
-  // สร้าง overlay แนะนำให้เปิดใน browser จริง
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed; inset: 0; z-index: 99999;
-    background: rgba(0,0,0,0.85);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 32px; font-family: 'Prompt', sans-serif;
-    text-align: center;
-  `;
-  overlay.innerHTML = `
-    <div style="
-      background: linear-gradient(135deg, #0a7c4e, #054d31);
-      border: 1px solid rgba(0,214,143,0.3);
-      border-radius: 24px; padding: 32px 24px;
-      max-width: 320px; color: white;
-    ">
-      <div style="font-size: 48px; margin-bottom: 16px;">🌐</div>
-      <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #00d68f;">
-        กรุณาเปิดใน Browser
-      </div>
-      <div style="font-size: 13px; opacity: 0.8; line-height: 1.8; margin-bottom: 24px;">
-        ไม่สามารถติดตั้งแอปผ่าน Line ได้<br>
-        กรุณาเปิดลิงก์ใน <strong>Chrome</strong> หรือ <strong>Safari</strong>
-      </div>
-      <div style="
-        background: rgba(255,255,255,0.08);
-        border-radius: 14px; padding: 16px;
-        font-size: 13px; line-height: 2; margin-bottom: 20px;
-      ">
-        ${isAndroid()
-          ? '1️⃣ กดปุ่ม <strong>⋮</strong> มุมขวาบน<br>2️⃣ เลือก <strong>"เปิดใน Chrome"</strong>'
-          : '1️⃣ กดปุ่ม <strong>⋯</strong> มุมขวาล่าง<br>2️⃣ เลือก <strong>"เปิดใน Safari"</strong>'
-        }
-      </div>
-      <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
-        background: none; border: 1px solid rgba(255,255,255,0.3);
-        color: rgba(255,255,255,0.5); border-radius: 20px;
-        padding: 6px 20px; font-size: 12px; cursor: pointer;
-        font-family: 'Prompt', sans-serif;
-      ">ปิด</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-}
-
-
   </script>
 </body>
 </html>
