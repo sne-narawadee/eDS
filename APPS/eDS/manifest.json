@@ -2,8 +2,8 @@
   "name": "SNE-eDocument System",
   "short_name": "eDS",
   "description": "SNE Electronic Document System - ระบบเอกสารอิเล็กทรอนิกส์",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "/eDS/APPS/eDS/index.html",
+  "scope": "/eDS/APPS/eDS/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#054d31",
@@ -25,7 +25,7 @@
   "shortcuts": [
     {
       "name": "เปิดระบบ eDS",
-      "url": "/index.html",
+      "url": "/eDS/APPS/eDS/index.html",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]
