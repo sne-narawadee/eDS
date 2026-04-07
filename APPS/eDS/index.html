@@ -922,16 +922,22 @@
       }
 
       if (installedFlag === 'true' || relatedAppInstalled) {
-        // ติดตั้งแล้ว → พยายาม launch PWA ทันที (browser จะ intercept และเปิด standalone app)
-        try {
-          const launched = window.open(window.location.href, '_blank');
-          // ถ้า open ล้มเหลว (popup blocked) → แสดงปุ่ม "เปิดแอป" เป็น fallback
-          if (!launched || launched.closed || typeof launched.closed === 'undefined') {
+        // ติดตั้งแล้ว
+        if (isAndroid() && !isIOS()) {
+          // Android: พยายาม launch PWA (browser จะ intercept)
+          try {
+            const launched = window.open(window.location.href, '_blank');
+            if (!launched || launched.closed || typeof launched.closed === 'undefined') {
+              setFabMode('open'); // fallback แสดงปุ่ม
+            } else {
+              setFabMode('hidden'); // เปิดอัตโนมัติแล้ว
+            }
+          } catch(e) {
             setFabMode('open');
           }
-          // ไม่แสดงปุ่มเพราะเปิดแอปอัตโนมัติแล้ว
-        } catch(e) {
-          setFabMode('open'); // fallback
+        } else {
+          // Desktop / iOS: ซ่อนปุ่มเงียบๆ (ไม่ auto-open เพราะ popup block)
+          setFabMode('hidden');
         }
       } else {
         // ยังไม่ได้ติดตั้ง → ซ่อนก่อน รอ beforeinstallprompt หรือ iOS
@@ -950,28 +956,44 @@
     const closeInstall = document.getElementById('closeInstall');
 
     /**
-     * beforeinstallprompt — listener เดียวจัดการทุก case:
-     *  1. ติดตั้งครั้งแรก
-     *  2. เคยติดตั้งแล้ว แต่ถอนออก → browser ยิง event นี้ขึ้นมาใหม่
-     *     = สัญญาณชัดที่สุดว่า uninstall แล้ว → ล้าง flag + แสดงปุ่มติดตั้ง
+     * beforeinstallprompt — browser ยิง event นี้เมื่อ PWA "installable"
+     * Chrome Desktop อาจยิงแม้ยังมีแอปติดตั้งอยู่
+     * → verify สถานะจริงก่อนตัดสินใจแสดงปุ่ม
      */
-    window.addEventListener('beforeinstallprompt', (e) => {
+    window.addEventListener('beforeinstallprompt', async (e) => {
       e.preventDefault();
       deferredPrompt = e;
 
-      if (isIOS()) return; // iOS ใช้ guide แยก
+      if (isIOS()) return;
+      if (isStandalone()) return;
 
-      const wasInstalled = localStorage.getItem('eDS_installed') === 'true';
-      if (wasInstalled) {
-        // uninstall แล้ว → ล้าง flag ทันที
-        console.log('[eDS] Detected uninstall → resetting install state');
-        localStorage.removeItem('eDS_installed');
+      const installedFlag = localStorage.getItem('eDS_installed') === 'true';
+
+      if (installedFlag) {
+        // verify ผ่าน getInstalledRelatedApps ก่อน
+        let stillInstalled = false;
+        if ('getInstalledRelatedApps' in navigator) {
+          try {
+            const apps = await navigator.getInstalledRelatedApps();
+            stillInstalled = apps.length > 0;
+          } catch(e2) {}
+        }
+
+        if (stillInstalled) {
+          // ยังติดตั้งอยู่จริง → ซ่อนปุ่ม
+          console.log('[eDS] PWA still installed → hiding FAB');
+          setFabMode('hidden');
+          return;
+        } else {
+          // ถอนการติดตั้งแล้ว → ล้าง flag
+          console.log('[eDS] Detected uninstall → resetting install state');
+          localStorage.removeItem('eDS_installed');
+        }
       }
 
-      // แสดงปุ่มติดตั้งเสมอเมื่อ browser พร้อม
+      // ยังไม่ได้ติดตั้ง (หรือถอนออกแล้ว) → แสดงปุ่มติดตั้ง
       setFabMode('install');
 
-      // Banner popup เฉพาะ Android mobile
       if (isAndroid()) {
         setTimeout(() => banner.classList.add('show'), 1200);
       }
