@@ -244,6 +244,130 @@
     }
 
     /* =========================================
+       PAGE LOADING OVERLAY — แสดงระหว่างรอ iframe
+    ========================================= */
+    #pageLoader {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      background: var(--g-dark);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    #pageLoader.active {
+      display: flex;
+    }
+    #pageLoader.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Spinning ring */
+    .pl-ring {
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+    .pl-ring svg {
+      width: 80px;
+      height: 80px;
+      animation: ringRotate 1.4s linear infinite;
+    }
+    @keyframes ringRotate {
+      100% { transform: rotate(360deg); }
+    }
+    .pl-ring circle {
+      fill: none;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-dasharray: 160;
+      stroke-dashoffset: 120;
+      stroke: var(--g3);
+      filter: drop-shadow(0 0 6px rgba(0,214,143,0.7));
+      animation: ringDash 1.4s ease-in-out infinite;
+    }
+    @keyframes ringDash {
+      0%   { stroke-dashoffset: 150; }
+      50%  { stroke-dashoffset: 30; }
+      100% { stroke-dashoffset: 150; }
+    }
+
+    /* Icon กลาง ring */
+    .pl-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pl-icon svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--g3);
+      animation: none;
+    }
+
+    /* ข้อความสถานะ */
+    .pl-texts {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pl-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: 1px;
+    }
+    .pl-sub {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      font-weight: 300;
+      letter-spacing: 1.5px;
+      transition: opacity 0.2s ease;
+      min-height: 18px;
+    }
+
+    /* Progress bar */
+    .pl-progress {
+      width: 200px;
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .pl-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--g3), var(--g2));
+      border-radius: 99px;
+      box-shadow: 0 0 8px var(--g3);
+      transition: width 0.6s ease;
+    }
+
+    /* Dots */
+    .pl-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .pl-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--g3);
+      opacity: 0.3;
+      animation: dotPop 1.2s ease-in-out infinite;
+    }
+    .pl-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .pl-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    /* =========================================
        INSTALL BANNER — Android (Popup)
     ========================================= */
     #installBanner {
@@ -527,6 +651,34 @@
     </div>
   </div>
 
+  <!-- ===== PAGE LOADING OVERLAY ===== -->
+  <div id="pageLoader">
+    <div class="pl-ring">
+      <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="34"/>
+      </svg>
+      <div class="pl-icon">
+        <!-- Document icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17h8v1.5H8V17zm0-3h8v1.5H8V14zm0-3h5v1.5H8V11z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="pl-texts">
+      <div class="pl-title">กำลังเปิดระบบ</div>
+      <div class="pl-sub" id="plSubText">กำลังโหลดหน้าแรก...</div>
+    </div>
+
+    <div class="pl-progress">
+      <div class="pl-progress-bar" id="plBar"></div>
+    </div>
+
+    <div class="pl-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
   <!-- ===== MAIN APP IFRAME ===== -->
   <iframe
     id="app"
@@ -613,18 +765,92 @@
       setTimeout(() => { lt.textContent = loadTexts[ti]; lt.style.opacity = '1'; }, 200);
     }, 700);
 
+    // ─── Page Loader (แสดงระหว่างรอ iframe) ──
+    const pageLoader  = document.getElementById('pageLoader');
+    const plBar       = document.getElementById('plBar');
+    const plSubText   = document.getElementById('plSubText');
+    let plProgress    = 0;
+    let plInterval    = null;
+    let iframeLoaded  = false;
+
+    const plMessages  = [
+      'กำลังโหลดหน้าแรก...',
+      'เชื่อมต่อเซิร์ฟเวอร์...',
+      'กำลังตรวจสอบสิทธิ์...',
+      'เตรียมข้อมูลผู้ใช้...',
+      'โหลดเนื้อหาเกือบเสร็จแล้ว...',
+    ];
+    let plMsgIdx = 0;
+
+    function startPageLoader() {
+      if (iframeLoaded) return;
+      pageLoader.classList.add('active');
+      plProgress = 5;
+      plBar.style.width = plProgress + '%';
+      plSubText.textContent = plMessages[0];
+
+      plInterval = setInterval(() => {
+        if (iframeLoaded) { clearInterval(plInterval); return; }
+
+        // เพิ่ม progress แบบ ease — เร็วตอนต้น ช้าตอนท้าย
+        const remaining = 90 - plProgress;
+        plProgress += Math.max(0.5, remaining * 0.06);
+        if (plProgress > 90) plProgress = 90;
+        plBar.style.width = plProgress + '%';
+
+        // หมุนข้อความ
+        const nextIdx = Math.min(Math.floor(plProgress / 20), plMessages.length - 1);
+        if (nextIdx !== plMsgIdx) {
+          plMsgIdx = nextIdx;
+          plSubText.style.opacity = '0';
+          setTimeout(() => {
+            plSubText.textContent = plMessages[plMsgIdx];
+            plSubText.style.opacity = '1';
+          }, 200);
+        }
+      }, 400);
+    }
+
+    function finishPageLoader() {
+      if (iframeLoaded) return;
+      iframeLoaded = true;
+      clearInterval(plInterval);
+      plProgress = 100;
+      plBar.style.width = '100%';
+      plSubText.style.opacity = '0';
+      setTimeout(() => {
+        plSubText.textContent = 'พร้อมใช้งาน ✓';
+        plSubText.style.opacity = '1';
+      }, 200);
+      setTimeout(() => {
+        pageLoader.classList.add('fade-out');
+        setTimeout(() => pageLoader.classList.remove('active'), 600);
+      }, 500);
+    }
+
     // ─── Splash dismiss ───────────────────────
     const splash = document.getElementById('splash');
     function hideSplash() {
       clearInterval(textInterval);
       splash.classList.add('fade-out');
-      setTimeout(() => splash.style.display = 'none', 750);
+      setTimeout(() => {
+        splash.style.display = 'none';
+        // แสดง pageLoader ต่อทันที ถ้า iframe ยังไม่โหลดเสร็จ
+        if (!iframeLoaded) startPageLoader();
+      }, 750);
     }
 
     const splashTimer = setTimeout(hideSplash, 2500);
     document.getElementById('app').addEventListener('load', () => {
       clearTimeout(splashTimer);
-      setTimeout(hideSplash, 600);
+      if (!splash.classList.contains('fade-out')) {
+        // iframe โหลดเสร็จก่อน splash หาย → ปิด splash ตามปกติ ไม่ต้อง pageLoader
+        iframeLoaded = true;
+        setTimeout(hideSplash, 600);
+      } else {
+        // iframe โหลดเสร็จหลัง splash หาย → ปิด pageLoader
+        finishPageLoader();
+      }
     });
 
     // ─── Helpers ─────────────────────────────
