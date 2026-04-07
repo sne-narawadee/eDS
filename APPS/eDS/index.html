@@ -708,59 +708,37 @@
     // รันตรวจสอบตอนโหลด
     checkInstallStatus();
 
-    // ─── Android: beforeinstallprompt ────────
+    // ─── Android / Desktop Install ───────────
     let deferredPrompt = null;
     const banner       = document.getElementById('installBanner');
     const installBtn   = document.getElementById('installBtn');
     const closeInstall = document.getElementById('closeInstall');
 
+    /**
+     * beforeinstallprompt — listener เดียวจัดการทุก case:
+     *  1. ติดตั้งครั้งแรก
+     *  2. เคยติดตั้งแล้ว แต่ถอนออก → browser ยิง event นี้ขึ้นมาใหม่
+     *     = สัญญาณชัดที่สุดว่า uninstall แล้ว → ล้าง flag + แสดงปุ่มติดตั้ง
+     */
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
 
-      // แสดง FAB ปุ่มติดตั้ง (ถ้าไม่ใช่ iOS)
-      if (!isIOS()) {
-        setFabMode('install');
-        // แสดง Banner popup หลัง 1.2 วิ (เฉพาะ mobile)
-        if (isAndroid()) {
-          setTimeout(() => banner.classList.add('show'), 1200);
-        }
+      if (isIOS()) return; // iOS ใช้ guide แยก
+
+      const wasInstalled = localStorage.getItem('eDS_installed') === 'true';
+      if (wasInstalled) {
+        // uninstall แล้ว → ล้าง flag ทันที
+        console.log('[eDS] Detected uninstall → resetting install state');
+        localStorage.removeItem('eDS_installed');
       }
-    });
 
-    // คลิกปุ่ม ติดตั้ง ใน Banner
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      await triggerInstall();
-      banner.classList.remove('show');
-    });
+      // แสดงปุ่มติดตั้งเสมอเมื่อ browser พร้อม
+      setFabMode('install');
 
-    closeInstall.addEventListener('click', () => banner.classList.remove('show'));
-
-    // ─── FAB Click ────────────────────────────
-    fab.addEventListener('click', async () => {
-      const mode = fab.classList.contains('mode-open') ? 'open' : 'install';
-
-      if (mode === 'open') {
-        // เปิดแอป: ลอง open URL ในรูปแบบ standalone
-        // หาก PWA ถูกติดตั้งใน Android/Desktop จะเปิด window ของแอปขึ้นมา
-        try {
-          // ลองเปิดผ่าน Window.open ด้วย target ที่ตรงกับ manifest start_url
-          const startUrl = '/'; // ปรับให้ตรงกับ start_url ใน manifest.json
-          window.open(startUrl, '_blank');
-        } catch(e) {
-          // Fallback: reload หน้าปัจจุบัน
-          window.location.reload();
-        }
-      } else {
-        // ติดตั้ง
-        if (deferredPrompt) {
-          await triggerInstall();
-          banner.classList.remove('show');
-        } else if (isIOS()) {
-          // iOS: แสดงคู่มือ
-          document.getElementById('iosGuide').classList.add('show');
-        }
+      // Banner popup เฉพาะ Android mobile
+      if (isAndroid()) {
+        setTimeout(() => banner.classList.add('show'), 1200);
       }
     });
 
@@ -785,12 +763,40 @@
       console.log('[eDS] App installed successfully');
     });
 
+    // คลิกปุ่ม ติดตั้ง ใน Banner
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      await triggerInstall();
+      banner.classList.remove('show');
+    });
+    closeInstall.addEventListener('click', () => banner.classList.remove('show'));
+
+    // ─── FAB Click ────────────────────────────
+    fab.addEventListener('click', async () => {
+      const isOpenMode = fab.classList.contains('mode-open');
+
+      if (isOpenMode) {
+        // เปิดแอปที่ติดตั้งไว้แล้ว
+        // Chrome/Android จะ intercept window.open และเปิด PWA window แทน browser
+        try {
+          window.open(window.location.href, '_blank');
+        } catch(e) {
+          window.location.reload();
+        }
+      } else if (deferredPrompt) {
+        // Android/Desktop: แสดง install prompt
+        await triggerInstall();
+        banner.classList.remove('show');
+      } else if (isIOS()) {
+        // iOS: แสดงคู่มือ Add to Home Screen
+        document.getElementById('iosGuide').classList.add('show');
+      }
+    });
+
     // ─── iOS Guide ────────────────────────────
     if (isIOS() && !isStandalone()) {
-      // แสดง FAB สำหรับ iOS (เพื่อเปิดคู่มือ)
       setTimeout(() => {
         setFabMode('install');
-        // แสดง guide popup หลัง 3.5 วิ
         setTimeout(() => document.getElementById('iosGuide').classList.add('show'), 3500);
       }, 1000);
     }
@@ -798,32 +804,6 @@
     document.getElementById('closeIos').addEventListener('click', () => {
       document.getElementById('iosGuide').classList.remove('show');
     });
-
-    // ─── ตรวจสอบ icon หายหลัง uninstall ─────
-    // เมื่อ user กลับมาเปิด browser อีกครั้งหลัง uninstall:
-    // - isStandalone() จะเป็น false
-    // - getInstalledRelatedApps() จะ return []
-    // - เราจึง clear flag และแสดงปุ่มติดตั้งใหม่
-    //
-    // Logic นี้ทำงานอัตโนมัติใน checkInstallStatus() ด้านบน:
-    // ถ้า flag = true แต่ relatedApp = [] → ยังแสดงปุ่ม "เปิดแอป" ไว้ก่อน
-    // เพราะ getInstalledRelatedApps อาจไม่ support ทุก browser
-    //
-    // การตรวจสอบ icon จริงๆ ทำได้เฉพาะ native app;
-    // สำหรับ PWA ใช้ combination ของ:
-    //   1. beforeinstallprompt (ถ้า event นี้ยิงขึ้นมาอีก = ถูก uninstall)
-    //   2. getInstalledRelatedApps() = [] = ถูก uninstall
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      // ถ้า event นี้ยิงซ้ำ = แสดงว่าเคย install แต่ถูก uninstall แล้ว
-      if (localStorage.getItem('eDS_installed') === 'true') {
-        console.log('[eDS] App was uninstalled, showing install button again');
-        localStorage.removeItem('eDS_installed');
-        e.preventDefault();
-        deferredPrompt = e;
-        setFabMode('install');
-      }
-    }, { once: false });
 
   </script>
 </body>
