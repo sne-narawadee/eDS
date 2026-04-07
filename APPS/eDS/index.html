@@ -696,8 +696,17 @@
       }
 
       if (installedFlag === 'true' || relatedAppInstalled) {
-        // ติดตั้งแล้ว → แสดงปุ่ม "เปิดแอป"
-        setFabMode('open');
+        // ติดตั้งแล้ว → พยายาม launch PWA ทันที (browser จะ intercept และเปิด standalone app)
+        try {
+          const launched = window.open(window.location.href, '_blank');
+          // ถ้า open ล้มเหลว (popup blocked) → แสดงปุ่ม "เปิดแอป" เป็น fallback
+          if (!launched || launched.closed || typeof launched.closed === 'undefined') {
+            setFabMode('open');
+          }
+          // ไม่แสดงปุ่มเพราะเปิดแอปอัตโนมัติแล้ว
+        } catch(e) {
+          setFabMode('open'); // fallback
+        }
       } else {
         // ยังไม่ได้ติดตั้ง → ซ่อนก่อน รอ beforeinstallprompt หรือ iOS
         // (จะแสดงเมื่อพร้อม)
@@ -750,7 +759,7 @@
       deferredPrompt = null;
       if (outcome === 'accepted') {
         localStorage.setItem('eDS_installed', 'true');
-        setFabMode('open');
+        setFabMode('hidden'); // ซ่อนปุ่มเพราะแอปเปิดเองอัตโนมัติ
       }
     }
 
@@ -759,7 +768,7 @@
       banner.classList.remove('show');
       deferredPrompt = null;
       localStorage.setItem('eDS_installed', 'true');
-      setFabMode('open');
+      setFabMode('hidden'); // ซ่อนปุ่มเพราะแอปเปิดเองอัตโนมัติหลังติดตั้ง
       console.log('[eDS] App installed successfully');
     });
 
