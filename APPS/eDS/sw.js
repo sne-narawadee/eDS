@@ -1,4 +1,7 @@
-const CACHE = 'eDS-v3';
+/* if update code into index.html then change version this code */
+
+const CACHE = 'eDS-v4';
+/*-------------------------------------------------------------*/
 const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
