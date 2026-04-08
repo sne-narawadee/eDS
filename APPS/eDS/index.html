@@ -24,6 +24,144 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
 
+<!-- ===============================================
+     LINE Browser → Open in System Browser
+================================================ -->
+  
+<script>
+  (function () {
+    const ua = navigator.userAgent || '';
+    const isLine = /Line\//i.test(ua);
+    if (!isLine) return; // ไม่ใช่ LINE browser → ทำงานปกติ
+
+    const currentUrl = encodeURIComponent(location.href);
+    const isAndroid  = /Android/i.test(ua);
+    const isIOS      = /iPhone|iPad|iPod/i.test(ua);
+
+    // ── Android: ใช้ intent:// เพื่อบังคับเปิด Chrome ──────────────
+    if (isAndroid) {
+      // intent:// จะให้ Android เปิด URL ใน Chrome (หรือ browser default)
+      const intentUrl =
+        'intent://' +
+        location.href.replace(/^https?:\/\//, '') +
+        '#Intent;scheme=https;action=android.intent.action.VIEW;' +
+        'package=com.android.chrome;end';
+
+      // พยายาม redirect อัตโนมัติ
+      location.href = intentUrl;
+
+      // Fallback: ถ้า intent ไม่ทำงาน (ไม่มี Chrome) → แสดง overlay
+      setTimeout(showOverlay, 1500);
+      return;
+    }
+
+    // ── iOS: ไม่มี intent:// → แสดง overlay แนะนำ ───────────────────
+    if (isIOS) {
+      showOverlay();
+      return;
+    }
+
+    // ── อื่นๆ (LINE Desktop ฯลฯ) ────────────────────────────────────
+    showOverlay();
+
+    // ── ฟังก์ชัน overlay ─────────────────────────────────────────────
+    function showOverlay() {
+      // ป้องกัน overlay ซ้อนกัน
+      if (document.getElementById('_lineOverlay')) return;
+
+      const isIOSDevice = /iPhone|iPad|iPod/i.test(ua);
+
+      // คำแนะนำแตกต่างกันตาม OS
+      const steps = isIOSDevice
+        ? `<p>เปิดเมนู <b>( ··· )</b> มุมล่างขวา</p>
+           <p>แล้วเลือก <b>"เปิดใน Safari"</b></p>`
+        : `<p>กดปุ่ม <b>⋮</b> มุมขวาบน</p>
+           <p>แล้วเลือก <b>"เปิดใน Chrome"</b> หรือ <b>"เปิดด้วย Browser"</b></p>`;
+
+      const overlay = document.createElement('div');
+      overlay.id = '_lineOverlay';
+      overlay.innerHTML = `
+        <div style="
+          position:fixed;inset:0;z-index:99999;
+          background:rgba(0,0,0,0.82);
+          display:flex;align-items:center;justify-content:center;
+          font-family:'Prompt',sans-serif;padding:24px;
+        ">
+          <div style="
+            background:#fff;border-radius:20px;padding:32px 28px;
+            max-width:340px;width:100%;text-align:center;
+            box-shadow:0 20px 60px rgba(0,0,0,0.4);
+          ">
+            <!-- ไอคอน -->
+            <div style="
+              width:72px;height:72px;border-radius:18px;margin:0 auto 20px;
+              background:linear-gradient(135deg,#06b06a,#0a7c4e);
+              display:flex;align-items:center;justify-content:center;
+            ">
+              <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
+                     M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </div>
+
+            <h2 style="font-size:18px;font-weight:700;color:#0d2e1f;margin-bottom:8px;">
+              กรุณาเปิดใน Browser
+            </h2>
+            <p style="font-size:13px;color:#555;margin-bottom:20px;line-height:1.6;">
+              เพื่อติดตั้งแอปได้ กรุณาเปิดลิงก์นี้<br>ใน Browser ของเครื่อง
+            </p>
+
+            <!-- ขั้นตอน -->
+            <div style="
+              background:#f0faf5;border-radius:12px;padding:16px;
+              text-align:left;font-size:14px;color:#0a7c4e;
+              line-height:2;margin-bottom:20px;
+            ">
+              ${steps}
+            </div>
+
+            <!-- ปุ่ม Copy -->
+            <button id="_lineCopyBtn" style="
+              width:100%;padding:14px;border:none;border-radius:12px;
+              background:linear-gradient(135deg,#06b06a,#0a7c4e);
+              color:#fff;font-size:15px;font-weight:600;
+              cursor:pointer;letter-spacing:0.5px;
+            ">
+              📋 คัดลอกลิงก์
+            </button>
+            <p id="_lineCopyDone" style="
+              display:none;margin-top:10px;font-size:13px;
+              color:#06b06a;font-weight:600;
+            ">✓ คัดลอกแล้ว! วางใน Browser ได้เลย</p>
+          </div>
+        </div>
+      `;
+
+      document.documentElement.appendChild(overlay);
+
+      document.getElementById('_lineCopyBtn').addEventListener('click', function () {
+        navigator.clipboard.writeText(location.href).then(function () {
+          document.getElementById('_lineCopyDone').style.display = 'block';
+          this.textContent = '✓ คัดลอกแล้ว!';
+          this.style.background = '#0a7c4e';
+        }.bind(this)).catch(function () {
+          // Fallback สำหรับ browser เก่า
+          var ta = document.createElement('textarea');
+          ta.value = location.href;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          document.getElementById('_lineCopyDone').style.display = 'block';
+        });
+      });
+    }
+  })();
+</script>
+  
   <style>
     :root {
       --g1: #0a7c4e;
