@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 Generate by AI
 """
 Generate all PWA icon sizes for eREQ from SVG source.
 Run: python3 generate_icons.py
