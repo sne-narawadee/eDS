@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>SNE-eDocument (eDS)</title>
+  <title>SNE-eRequest (eREQ)</title>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -14,7 +14,7 @@
   <!-- Apple iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="eDS">
+  <meta name="apple-mobile-web-app-title" content="eREQ">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Favicon -->
@@ -774,8 +774,8 @@
       </div>
 
       <div class="splash-name">
-        <h1>eDS</h1>
-        <p>SNE ELECTRONIC DOCUMENT</p>
+        <h1>eREQ</h1>
+        <p>SNE ELECTRONIC REQUEST</p>
       </div>
 
       <div class="loader-wrap">
@@ -821,7 +821,7 @@
   <!-- ===== MAIN APP IFRAME ===== -->
   <iframe
     id="app"
-    src="https://script.google.com/macros/s/AKfycbxAOQ7FH_k1Z9yIlCzO4XNR_R7uz_ve3KXMD2bhabHMFsSf9E5pMQqlj1ileKvNrG_q/exec"
+    src="https://script.google.com/macros/s/AKfycbwi6MoHgU7P3yZ7jU7TVvbSldTclhhBgZdxH8Nf5BcJHWG_yCJC46-36VvNC-xw9C5_/exec"
     allow="geolocation; camera; microphone"
     credentialless
     referrerpolicy="no-referrer"
@@ -835,7 +835,7 @@
       <svg viewBox="0 0 24 24"><path d="M17 12l-5 5-5-5h3V7h4v5h3z"/></svg>
     </div>
     <div class="install-info">
-      <strong>ติดตั้งแอป eDS</strong>
+      <strong>ติดตั้งแอป eREQ</strong>
       <span>เปิดได้เหมือนแอปทั่วไป ไม่ต้องใช้เบราว์เซอร์</span>
     </div>
     <button id="installBtn">ติดตั้ง</button>
@@ -844,7 +844,7 @@
 
   <!-- ===== iOS INSTALL GUIDE ===== -->
   <div id="iosGuide">
-    <div class="ios-title">📲 เพิ่ม eDS ลงหน้าจอหลัก</div>
+    <div class="ios-title">📲 เพิ่ม eREQ ลงหน้าจอหลัก</div>
     <div class="ios-step">
       <div class="step-num">1</div>
       <span>กดปุ่ม <strong>Share</strong> (□↑) ในแถบล่างของ Safari</span>
@@ -861,7 +861,7 @@
   </div>
 
   <!-- ===== FLOATING INSTALL / OPEN BUTTON ===== -->
-  <button id="fabInstall" data-label="ติดตั้งแอป" aria-label="ติดตั้งแอป eDS">
+  <button id="fabInstall" data-label="ติดตั้งแอป" aria-label="ติดตั้งแอป eREQ">
     <!-- ไอคอน Download (default: ติดตั้ง) -->
     <svg id="fabIconInstall" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
@@ -889,8 +889,8 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-        .then(() => console.log('[eDS] SW registered'))
-        .catch(err => console.log('[eDS] SW failed:', err));
+        .then(() => console.log('[eREQ] SW registered'))
+        .catch(err => console.log('[eREQ] SW failed:', err));
       });
     }
 
@@ -1022,12 +1022,12 @@
       if (mode === 'open') {
         fab.classList.add('mode-open');
         fab.setAttribute('data-label', 'เปิดแอป');
-        fab.setAttribute('aria-label', 'เปิดแอป eDS');
+        fab.setAttribute('aria-label', 'เปิดแอป eREQ');
         fabIconInstall.style.display = 'none';
         fabIconOpen.style.display    = 'block';
       } else {
         fab.setAttribute('data-label', 'ติดตั้งแอป');
-        fab.setAttribute('aria-label', 'ติดตั้งแอป eDS');
+        fab.setAttribute('aria-label', 'ติดตั้งแอป eREQ');
         fabIconInstall.style.display = 'block';
         fabIconOpen.style.display    = 'none';
       }
@@ -1049,7 +1049,7 @@
       }
 
       // ตรวจสอบ localStorage flag (บันทึกไว้หลัง install สำเร็จ)
-      const installedFlag = localStorage.getItem('eDS_installed');
+      const installedFlag = localStorage.getItem('eREQ_installed');
 
       // ตรวจสอบผ่าน getInstalledRelatedApps (Chrome/Android)
       let relatedAppInstalled = false;
@@ -1106,7 +1106,7 @@
       if (isIOS()) return;
       if (isStandalone()) return;
 
-      const installedFlag = localStorage.getItem('eDS_installed') === 'true';
+      const installedFlag = localStorage.getItem('eREQ_installed') === 'true';
 
       if (installedFlag) {
         // verify ผ่าน getInstalledRelatedApps ก่อน
@@ -1120,13 +1120,13 @@
 
         if (stillInstalled) {
           // ยังติดตั้งอยู่จริง → ซ่อนปุ่ม
-          console.log('[eDS] PWA still installed → hiding FAB');
+          console.log('[eREQ] PWA still installed → hiding FAB');
           setFabMode('hidden');
           return;
         } else {
           // ถอนการติดตั้งแล้ว → ล้าง flag
-          console.log('[eDS] Detected uninstall → resetting install state');
-          localStorage.removeItem('eDS_installed');
+          console.log('[eREQ] Detected uninstall → resetting install state');
+          localStorage.removeItem('eREQ_installed');
         }
       }
 
@@ -1145,7 +1145,7 @@
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
       if (outcome === 'accepted') {
-        localStorage.setItem('eDS_installed', 'true');
+        localStorage.setItem('eREQ_installed', 'true');
         setFabMode('hidden'); // ซ่อนปุ่มเพราะแอปเปิดเองอัตโนมัติ
       }
     }
@@ -1154,9 +1154,9 @@
     window.addEventListener('appinstalled', () => {
       banner.classList.remove('show');
       deferredPrompt = null;
-      localStorage.setItem('eDS_installed', 'true');
+      localStorage.setItem('eREQ_installed', 'true');
       setFabMode('hidden'); // ซ่อนปุ่มเพราะแอปเปิดเองอัตโนมัติหลังติดตั้ง
-      console.log('[eDS] App installed successfully');
+      console.log('[eREQ] App installed successfully');
     });
 
     // คลิกปุ่ม ติดตั้ง ใน Banner
