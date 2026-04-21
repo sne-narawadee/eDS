@@ -167,6 +167,33 @@ iframe {
     min-height: calc(100vh - 280px);
     display: block;
 }
+
+/* overlay บล็อก iframe เมื่อยังไม่ยืนยันตัวตน */
+.iframe-block-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.iframe-block-overlay p {
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.iframe-wrapper {
+    position: relative;  /* ← เพิ่มบรรทัดนี้ */
+}
+    
 </style>
 </head>
 <body>
@@ -201,6 +228,13 @@ iframe {
 
     <!-- iframe GAS -->
     <div class="iframe-wrapper">
+    
+        <!-- overlay บล็อกก่อนยืนยันตัวตน -->
+        <div class="iframe-block-overlay" id="iframeBlockOverlay">
+            <p>📷 กรุณายืนยันตัวตนด้วยใบหน้าก่อน</p>
+            <p style="font-size:13px; font-weight:400;">กดปุ่ม "เปิดกล้อง" ด้านบน แล้วถ่ายภาพ</p>
+        </div>
+    
         <iframe
             id="app"
             allow="geolocation"
@@ -211,6 +245,7 @@ iframe {
 </div>
 
 <script>
+    
 /* ── Load GAS URL ── */
 document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(window.location.search);
@@ -231,6 +266,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var finalUrl = GAS_URL + (query.length ? '?' + query.join('&') : '');
     console.log('Load GAS:', finalUrl);
     document.getElementById('app').src = finalUrl;
+
+    fvUpdateOverlay();  // ← เพิ่มบรรทัดนี้
 });
 
 /* ══════════════════════════════════════
@@ -388,19 +425,16 @@ function fvCapture() {
 function fvRetake() {
     fvVerified = false;
 
-    /* แจ้ง iframe ว่า reset */
-    var iframe = document.getElementById('app');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'FACE_RESET' }, '*');
-    }
-
     document.getElementById('fvPreviewArea').classList.remove('active');
     document.getElementById('fvBtnRetake').style.display = 'none';
     fvSetStatus('idle', '🎥', 'กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnCapture').disabled = true;
+
+    fvUpdateOverlay();  // ← เพิ่มบรรทัดนี้
 }
 
+    
 /* ── รับข้อความจาก GAS iframe (กรณี GAS ต้องการสั่งอะไร) ── */
 window.addEventListener('message', function(event) {
     /* รับ SUBMIT_REQUEST จาก GAS — ตรวจว่า verify แล้วหรือยัง */
@@ -414,6 +448,14 @@ window.addEventListener('message', function(event) {
     }
 });
 
+/* ── อัปเดต overlay ── */
+function fvUpdateOverlay() {
+    var overlay = document.getElementById('iframeBlockOverlay');
+    if (!overlay) return;
+    overlay.style.display = fvVerified ? 'none' : 'flex';
+}
+
+  
 /* ── bind ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
 document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
