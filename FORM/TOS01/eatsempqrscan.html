@@ -158,6 +158,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative; /* ← สำคัญมาก */
 }
 
 iframe {
@@ -188,10 +189,6 @@ iframe {
     font-weight: 700;
     text-align: center;
     padding: 0 20px;
-}
-
-.iframe-wrapper {
-    position: relative;  /* ← เพิ่มบรรทัดนี้ */
 }
     
 </style>
@@ -354,25 +351,18 @@ function fvOpenCamera() {
 function fvCapture() {
     var video  = document.getElementById('fvVideo');
     var canvas = document.getElementById('fvCanvas');
-
     if (!video.videoWidth) {
         fvSetStatus('error', '⚠️', 'กล้องยังไม่พร้อม รอสักครู่แล้วลองใหม่');
         return;
     }
-
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
-
     var ctx = canvas.getContext('2d');
-
-    /* วาดภาพ mirror */
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
-
-    /* Timestamp */
     var now = new Date();
     var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
     var stamp = pad(now.getDate()) + '/' +
@@ -381,25 +371,17 @@ function fvCapture() {
                 pad(now.getHours()) + ':' +
                 pad(now.getMinutes()) + ':' +
                 pad(now.getSeconds());
-
     var fontSize = Math.max(16, Math.round(canvas.width * 0.035));
     var padding  = Math.round(fontSize * 0.5);
     var barH     = fontSize + padding * 2;
-
     ctx.fillStyle = 'rgba(0,0,0,0.52)';
     ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
-
     ctx.font      = 'bold ' + fontSize + 'px monospace';
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline = 'middle';
     ctx.fillText('⏱ ' + stamp, padding, canvas.height - barH / 2);
-
     var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-
-    /* หยุดกล้อง */
     fvStopStream();
-
-    /* แสดง preview */
     document.getElementById('fvCameraArea').classList.remove('active');
     document.getElementById('fvPreviewArea').classList.add('active');
     document.getElementById('fvPreviewBadge').textContent = '✅ ยืนยันตัวตนแล้ว — ' + stamp;
@@ -407,18 +389,11 @@ function fvCapture() {
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnRetake').style.display = '';
 
-    fvVerified = true;
-    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
+    fvVerified = true;                                                    // ← คงไว้
+    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล'); // ← คงไว้
+    fvUpdateOverlay();                                                    // ← เพิ่มใหม่
 
-    /* ✅ ส่ง base64 ไปให้ iframe (GAS) ผ่าน postMessage */
-    var iframe = document.getElementById('app');
-    if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-            type: 'FACE_VERIFIED',
-            imageData: dataUrl
-        }, '*');
-        console.log('✅ postMessage FACE_VERIFIED ส่งแล้ว');
-    }
+    /* ลบ postMessage ออกทั้งหมด — GAS บล็อกอยู่ */
 }
 
 /* ── ถ่ายใหม่ ── */
