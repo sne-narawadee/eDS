@@ -1,91 +1,424 @@
 <!-------- GitHub : eatsempqrscan.html ------>
-
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Employee Time Attendance</title>
-
 <style>
+* { margin:0; padding:0; box-sizing:border-box; }
 
-html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    background:#ffffff;
-    overflow:hidden;
+body {
+    font-family: 'Sarabun', Arial, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
 }
 
-iframe{
-    border:none;
-    width:100%;
-    height:100vh;
-    display:block;
+/* ── Layout ── */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
+/* ── Face Verify Panel (ด้านบน) ── */
+.fv-panel {
+    background: white;
+    border-bottom: 3px solid #56ab2f;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.fv-title {
+    font-weight: 700;
+    color: #166534;
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fv-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.fv-status-bar.idle    { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; }
+.fv-status-bar.ready   { background:#dcfce7; color:#166534; border:1px solid #86efac; }
+.fv-status-bar.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+.fv-status-bar.loading { background:#fef9c3; color:#854d0e; border:1px solid #fde68a; }
+
+/* Camera */
+.fv-camera-area {
+    display: none;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    width: 100%;
+    aspect-ratio: 4/3;
+    max-height: 260px;
+    margin-bottom: 10px;
+}
+.fv-camera-area.active { display: block; }
+
+#fvVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);
+}
+
+.fv-face-guide {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 130px; height: 130px;
+    border: 3px dashed rgba(134,239,172,0.85);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: fv-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes fv-pulse {
+    0%,100% { border-color: rgba(134,239,172,0.85); }
+    50%      { border-color: rgba(74,222,128,1); box-shadow: 0 0 0 8px rgba(134,239,172,0); }
+}
+
+/* Preview */
+.fv-preview-area {
+    display: none;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #86efac;
+    position: relative;
+    margin-bottom: 10px;
+}
+.fv-preview-area.active { display: block; }
+
+#fvCanvas { width: 100%; display: block; }
+
+.fv-preview-badge {
+    position: absolute;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22,101,52,0.85);
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* Buttons */
+.fv-btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fv-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.fv-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.fv-btn-open    { background: linear-gradient(135deg,#16a34a,#22c55e); color:#fff; }
+.fv-btn-capture { background: linear-gradient(135deg,#0ea5e9,#38bdf8); color:#fff; }
+.fv-btn-retake  { background: #f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+
+.fv-no-upload-notice {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 8px;
+    text-align: center;
+}
+
+/* ── iframe (ด้านล่าง) ── */
+.iframe-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+iframe {
+    border: none;
+    width: 100%;
+    flex: 1;
+    min-height: calc(100vh - 280px);
+    display: block;
+}
 </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+    <!-- 📷 Face Verify Panel -->
+    <div class="fv-panel" id="fvPanel">
+        <div class="fv-title">📷 ยืนยันตัวตนด้วยใบหน้า <span style="color:#e74c3c">*</span></div>
+
+        <div class="fv-status-bar idle" id="fvStatusBar">
+            <span id="fvStatusIcon">🎥</span>
+            <span id="fvStatusText">กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน</span>
+        </div>
+
+        <div class="fv-camera-area" id="fvCameraArea">
+            <video id="fvVideo" autoplay playsinline muted></video>
+            <div class="fv-face-guide"></div>
+        </div>
+
+        <div class="fv-preview-area" id="fvPreviewArea">
+            <canvas id="fvCanvas"></canvas>
+            <div class="fv-preview-badge" id="fvPreviewBadge">✅ ยืนยันตัวตนแล้ว</div>
+        </div>
+
+        <div class="fv-btn-row">
+            <button class="fv-btn fv-btn-open"    id="fvBtnOpen">🎥 เปิดกล้อง</button>
+            <button class="fv-btn fv-btn-capture" id="fvBtnCapture" disabled>📸 ถ่ายภาพ</button>
+            <button class="fv-btn fv-btn-retake"  id="fvBtnRetake" style="display:none">🔄 ถ่ายใหม่</button>
+        </div>
+        <div class="fv-no-upload-notice">🚫 ระบบไม่อนุญาตให้ Upload รูปภาพ — ถ่ายสดเท่านั้น</div>
+    </div>
+
+    <!-- iframe GAS -->
+    <div class="iframe-wrapper">
+        <iframe
+            id="app"
+            allow="geolocation"
+            loading="lazy">
+        </iframe>
+    </div>
+
+</div>
 
 <script>
+/* ── Load GAS URL ── */
+document.addEventListener('DOMContentLoaded', function() {
+    var params = new URLSearchParams(window.location.search);
 
-    document.addEventListener("DOMContentLoaded", function(){
-    
-    const params = new URLSearchParams(window.location.search);
-    
-    const empCode = params.get("empCode");
-    const spreadsheetId = params.get("spreadsheetId");
-    const sheetName = params.get("sheetName");
-    const page = params.get("page");
-    
-    const GAS_URL =
-    "https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec";
-    
-    let url = GAS_URL;
-    
-    let query = [];
-    
-    if(page){
-    query.push("page=" + encodeURIComponent(page));
-    }
-    
-    if(empCode){
-    query.push("empCode=" + encodeURIComponent(empCode));
-    }
-    
-    if(spreadsheetId){
-    query.push("spreadsheetId=" + encodeURIComponent(spreadsheetId));
-    }
-    
-    if(sheetName){
-    query.push("sheetName=" + encodeURIComponent(sheetName));
-    }
-    
-    if(query.length){
-    url += "?" + query.join("&");
-    }
-    
-    console.log("Load GAS:", url);
-    
-    document.getElementById("app").src = url;
-    
-    });
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
+    var query = [];
+    var page          = params.get('page');
+    var empCode       = params.get('empCode');
+    var spreadsheetId = params.get('spreadsheetId');
+    var sheetName     = params.get('sheetName');
+
+    if (page)          query.push('page='          + encodeURIComponent(page));
+    if (empCode)       query.push('empCode='       + encodeURIComponent(empCode));
+    if (spreadsheetId) query.push('spreadsheetId=' + encodeURIComponent(spreadsheetId));
+    if (sheetName)     query.push('sheetName='     + encodeURIComponent(sheetName));
+
+    var finalUrl = GAS_URL + (query.length ? '?' + query.join('&') : '');
+    console.log('Load GAS:', finalUrl);
+    document.getElementById('app').src = finalUrl;
+});
+
+/* ══════════════════════════════════════
+   📷 Face Verification
+   ══════════════════════════════════════ */
+var fvStream   = null;
+var fvVerified = false;
+
+function fvSetStatus(type, icon, text) {
+    var bar = document.getElementById('fvStatusBar');
+    bar.className = 'fv-status-bar ' + type;
+    document.getElementById('fvStatusIcon').textContent = icon;
+    document.getElementById('fvStatusText').textContent = text;
+}
+
+function fvStopStream() {
+    if (fvStream) {
+        fvStream.getTracks().forEach(function(t) { t.stop(); });
+        fvStream = null;
+    }
+}
+
+/* ── เปิดกล้อง ── */
+function fvOpenCamera() {
+    fvSetStatus('loading', '⏳', 'กำลังเปิดกล้อง...');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        fvSetStatus('error', '❌', 'Browser ไม่รองรับกล้อง กรุณาใช้ Chrome/Safari');
+        return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then(function(stream) {
+            fvStream = stream;
+            var video = document.getElementById('fvVideo');
+            video.srcObject = stream;
+
+            document.getElementById('fvCameraArea').classList.add('active');
+            document.getElementById('fvPreviewArea').classList.remove('active');
+            document.getElementById('fvBtnOpen').disabled    = true;
+            document.getElementById('fvBtnCapture').disabled = false;
+            document.getElementById('fvBtnRetake').style.display = 'none';
+
+            fvSetStatus('loading', '📷', 'กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
+            fvVerified = false;
+        })
+        .catch(function(err) {
+            console.error('Camera error:', err.name, err.message);
+            var msg;
+            if (err.name === 'NotAllowedError') {
+                msg = 'ไม่ได้รับอนุญาตใช้กล้อง — กรุณากด Allow ที่ popup หรือใน Site Settings';
+            } else if (err.name === 'NotFoundError') {
+                msg = 'ไม่พบกล้องในอุปกรณ์นี้ — กรุณาใช้มือถือหรือเชื่อมต่อ Webcam';
+            } else if (err.name === 'NotReadableError') {
+                msg = 'กล้องถูกใช้งานโดย app อื่นอยู่ — กรุณาปิด app อื่นก่อน';
+            } else if (err.name === 'OverconstrainedError') {
+                fvSetStatus('loading', '⏳', 'กำลังลองเปิดกล้องแบบสำรอง...');
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(function(stream) {
+                        fvStream = stream;
+                        document.getElementById('fvVideo').srcObject = stream;
+                        document.getElementById('fvCameraArea').classList.add('active');
+                        document.getElementById('fvPreviewArea').classList.remove('active');
+                        document.getElementById('fvBtnOpen').disabled    = true;
+                        document.getElementById('fvBtnCapture').disabled = false;
+                        document.getElementById('fvBtnRetake').style.display = 'none';
+                        fvSetStatus('loading', '📷', 'กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
+                        fvVerified = false;
+                    })
+                    .catch(function(err2) {
+                        fvSetStatus('error', '❌', 'ไม่สามารถเปิดกล้องได้: ' + err2.message);
+                        document.getElementById('fvBtnOpen').disabled = false;
+                    });
+                return;
+            } else {
+                msg = 'ไม่สามารถเปิดกล้องได้: ' + err.name + ' — ' + err.message;
+            }
+            fvSetStatus('error', '❌', msg);
+            document.getElementById('fvBtnOpen').disabled = false;
+        });
+}
+
+/* ── ถ่ายภาพ + timestamp ── */
+function fvCapture() {
+    var video  = document.getElementById('fvVideo');
+    var canvas = document.getElementById('fvCanvas');
+
+    if (!video.videoWidth) {
+        fvSetStatus('error', '⚠️', 'กล้องยังไม่พร้อม รอสักครู่แล้วลองใหม่');
+        return;
+    }
+
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    var ctx = canvas.getContext('2d');
+
+    /* วาดภาพ mirror */
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    /* Timestamp */
+    var now = new Date();
+    var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+    var stamp = pad(now.getDate()) + '/' +
+                pad(now.getMonth() + 1) + '/' +
+                now.getFullYear() + '  ' +
+                pad(now.getHours()) + ':' +
+                pad(now.getMinutes()) + ':' +
+                pad(now.getSeconds());
+
+    var fontSize = Math.max(16, Math.round(canvas.width * 0.035));
+    var padding  = Math.round(fontSize * 0.5);
+    var barH     = fontSize + padding * 2;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.52)';
+    ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+
+    ctx.font      = 'bold ' + fontSize + 'px monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⏱ ' + stamp, padding, canvas.height - barH / 2);
+
+    var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+    /* หยุดกล้อง */
+    fvStopStream();
+
+    /* แสดง preview */
+    document.getElementById('fvCameraArea').classList.remove('active');
+    document.getElementById('fvPreviewArea').classList.add('active');
+    document.getElementById('fvPreviewBadge').textContent = '✅ ยืนยันตัวตนแล้ว — ' + stamp;
+    document.getElementById('fvBtnCapture').disabled = true;
+    document.getElementById('fvBtnOpen').disabled    = false;
+    document.getElementById('fvBtnRetake').style.display = '';
+
+    fvVerified = true;
+    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
+
+    /* ✅ ส่ง base64 ไปให้ iframe (GAS) ผ่าน postMessage */
+    var iframe = document.getElementById('app');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'FACE_VERIFIED',
+            imageData: dataUrl
+        }, '*');
+        console.log('✅ postMessage FACE_VERIFIED ส่งแล้ว');
+    }
+}
+
+/* ── ถ่ายใหม่ ── */
+function fvRetake() {
+    fvVerified = false;
+
+    /* แจ้ง iframe ว่า reset */
+    var iframe = document.getElementById('app');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'FACE_RESET' }, '*');
+    }
+
+    document.getElementById('fvPreviewArea').classList.remove('active');
+    document.getElementById('fvBtnRetake').style.display = 'none';
+    fvSetStatus('idle', '🎥', 'กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
+    document.getElementById('fvBtnOpen').disabled    = false;
+    document.getElementById('fvBtnCapture').disabled = true;
+}
+
+/* ── รับข้อความจาก GAS iframe (กรณี GAS ต้องการสั่งอะไร) ── */
+window.addEventListener('message', function(event) {
+    /* รับ SUBMIT_REQUEST จาก GAS — ตรวจว่า verify แล้วหรือยัง */
+    if (event.data && event.data.type === 'SUBMIT_REQUEST') {
+        var iframe = document.getElementById('app');
+        if (!fvVerified) {
+            iframe.contentWindow.postMessage({ type: 'FACE_NOT_VERIFIED' }, '*');
+        } else {
+            iframe.contentWindow.postMessage({ type: 'FACE_OK' }, '*');
+        }
+    }
+});
+
+/* ── bind ── */
+document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
+document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
+document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
+window.addEventListener('beforeunload', fvStopStream);
 </script>
-
-</head>
-
-<body>
-
-<iframe
-    id="app"
-    allow="geolocation *; camera *; microphone *"
-    loading="lazy">
-</iframe>
-
 </body>
-
 </html>
