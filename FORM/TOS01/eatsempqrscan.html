@@ -389,11 +389,12 @@ function fvCapture() {
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnRetake').style.display = '';
 
-    fvVerified = true;                                                    // ← คงไว้
-    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล'); // ← คงไว้
-    fvUpdateOverlay();                                                    // ← เพิ่มใหม่
-
-    /* ลบ postMessage ออกทั้งหมด — GAS บล็อกอยู่ */
+    fvVerified = true;
+    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กำลังอัปโหลดรูป...');
+    fvUpdateOverlay();
+    
+    /* ── อัปโหลดรูปไป GAS → Drive ── */
+    fvUploadToGAS(dataUrl);
 }
 
 /* ── ถ่ายใหม่ ── */
@@ -430,6 +431,48 @@ function fvUpdateOverlay() {
     overlay.style.display = fvVerified ? 'none' : 'flex';
 }
 
+//Upload to GAS     
+var fvImageUrl = '';  // เก็บ URL รูปที่อัปโหลดแล้ว
+function fvUploadToGAS(dataUrl) {
+    fvSetStatus('loading', '⏳', 'กำลังอัปโหลดรูปยืนยันตัวตน...');
+
+    /* ส่ง base64 ไปที่ GAS โดยตรงผ่าน fetch */
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+
+    fetch(GAS_URL + '?action=saveFaceImage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'saveFaceImage',
+            imageData: dataUrl,
+            empCode: 'unknown',   // จะอัปเดตทีหลัง
+            timeStatus: 'unknown'
+        })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+        if (result.status === 'success' && result.fileUrl) {
+            fvImageUrl = result.fileUrl;
+            fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
+            console.log('✅ Face image URL:', fvImageUrl);
+
+            /* ส่ง URL ไปให้ iframe GAS */
+            var iframe = document.getElementById('app');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'FACE_IMAGE_URL',
+                    url: fvImageUrl
+                }, '*');
+            }
+        } else {
+            fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
+        }
+    })
+    .catch(function(err) {
+        console.error('Upload error:', err);
+        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
+    });
+}
   
 /* ── bind ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
