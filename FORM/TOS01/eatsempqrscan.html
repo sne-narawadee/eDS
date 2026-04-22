@@ -421,12 +421,18 @@ function fvUpdateOverlay() {
 }
 
 /* ── Upload รูปทันทีหลังถ่าย ── */
-var fvDataUrl   = '';
-var fvImageUrl  = '';
-var fvUploading = false;
-
 function fvUploadNow(dataUrl) {
     fvUploading = true;
+    fvImageUrl  = '';
+
+    // ✅ บล็อก iframe ระหว่าง upload
+    var overlay = document.getElementById('iframeBlockOverlay');
+    var overlayMsg = overlay.querySelector('p');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.innerHTML = '<p>⏳ กำลังอัปโหลดรูปยืนยันตัวตน...</p><p style="font-size:13px;font-weight:400;">กรุณารอสักครู่</p>';
+    }
+
     console.log('📤 กำลัง upload รูป...');
 
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
@@ -452,33 +458,40 @@ function fvUploadNow(dataUrl) {
                 console.log('✅ Face URL:', fvImageUrl);
                 fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
 
-                // ✅ ส่ง URL ไปเก็บใน GAS ผ่าน endpoint แยก
+                // ✅ เปิด iframe ได้เมื่อ upload เสร็จ
                 fvSaveUrlToCache(fvImageUrl);
 
             } else {
                 console.warn('⚠️ Upload ไม่สำเร็จ:', text);
                 fvImageUrl = '';
+                fvUploading = false;
+                // ✅ เปิด iframe ให้ใช้ได้แม้ upload ไม่สำเร็จ
+                if (overlay) overlay.style.display = 'none';
                 fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
             }
         } catch(e) {
             console.error('Parse error:', e, text);
             fvImageUrl = '';
+            fvUploading = false;
+            if (overlay) overlay.style.display = 'none';
             fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
         }
     })
     .catch(function(err) {
         console.error('❌ Upload error:', err);
+        fvImageUrl  = '';
         fvUploading = false;
-        fvImageUrl = '';
+        if (overlay) overlay.style.display = 'none';
         fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
     });
 }
 
 /* ── เก็บ URL ใน GAS Cache รอ submit ── */
-var fvCacheKey = 'fv_' + Date.now(); // unique key ต่อ session
+var fvCacheKey = 'fv_' + Date.now();
 
 function fvSaveUrlToCache(fileUrl) {
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+
     fetch(GAS_URL, {
         method: 'POST',
         body: JSON.stringify({
@@ -491,15 +504,26 @@ function fvSaveUrlToCache(fileUrl) {
     .then(function(res) { return res.text(); })
     .then(function(text) {
         console.log('✅ Cache saved:', text);
-        // ✅ reload iframe พร้อม cacheKey (สั้นมาก ไม่มีปัญหา URL ยาว)
+
+        // ✅ reload iframe พร้อม fvKey
         var iframe = document.getElementById('app');
         var currentSrc = iframe.src;
         currentSrc = currentSrc.replace(/&fvKey=[^&]*/g, '');
         iframe.src = currentSrc + '&fvKey=' + encodeURIComponent(fvCacheKey);
         console.log('🔄 Reload iframe with fvKey:', fvCacheKey);
+
+        // ✅ ซ่อน overlay เมื่อ iframe โหลดเสร็จ
+        iframe.onload = function() {
+            var overlay = document.getElementById('iframeBlockOverlay');
+            if (overlay) overlay.style.display = 'none';
+            console.log('✅ iframe โหลดเสร็จ พร้อมบันทึก');
+        };
     })
     .catch(function(err) {
         console.error('Cache error:', err);
+        // เปิด iframe ให้ใช้ได้แม้ cache ไม่สำเร็จ
+        var overlay = document.getElementById('iframeBlockOverlay');
+        if (overlay) overlay.style.display = 'none';
     });
 }
 
