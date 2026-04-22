@@ -394,11 +394,10 @@ function fvCapture() {
     document.getElementById('fvBtnRetake').style.display = '';
 
     fvVerified = true;
-    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
+    fvSetStatus('loading', '⏳', 'กำลังอัปโหลดรูปยืนยันตัวตน...');
     fvUpdateOverlay();
+    fvUploadNow(fvDataUrl);   // ← upload ทันที
 
-    // ✅ ไม่ต้อง upload ตอนนี้ — รอ GAS บันทึก form แล้วค่อย upload พร้อมกัน
-    console.log('✅ รูปพร้อมแล้ว ขนาด:', Math.round(fvDataUrl.length / 1024), 'KB');
 }
 
 /* ── ถ่ายใหม่ ── */
@@ -421,30 +420,14 @@ function fvUpdateOverlay() {
     overlay.style.display = fvVerified ? 'none' : 'flex';
 }
 
-/* ── รับ event จาก GAS iframe ── */
-/* 
-   ✅ GAS จะส่ง postMessage มาขอ faceDataUrl ตอน submit
-   แต่เนื่องจาก GAS บล็อก ให้ใช้วิธี intercept submit แทน
-*/
-window.addEventListener('message', function(event) {
-    if (!event.data || !event.data.type) return;
+/* ── Upload รูปทันทีหลังถ่าย ── */
+var fvDataUrl   = '';
+var fvImageUrl  = '';
+var fvUploading = false;
 
-    // ✅ รับ event จาก GAS ว่าบันทึกสำเร็จแล้ว → upload รูป
-    if (event.data.type === 'SAVE_SUCCESS') {
-        console.log('📷 GAS บันทึกสำเร็จ → upload รูป...');
-        if (fvDataUrl) {
-            fvUploadAfterSave(
-                event.data.empCode || 'unknown',
-                event.data.timeStatus || 'unknown',
-                event.data.rowIndex || 0
-            );
-        }
-    }
-});
-
-/* ── Upload รูปหลัง GAS บันทึกสำเร็จ ── */
-function fvUploadAfterSave(empCode, timeStatus, rowIndex) {
-    console.log('📤 กำลัง upload รูป empCode:', empCode);
+function fvUploadNow(dataUrl) {
+    fvUploading = true;
+    console.log('📤 กำลัง upload รูป...');
 
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
@@ -452,28 +435,46 @@ function fvUploadAfterSave(empCode, timeStatus, rowIndex) {
         method: 'POST',
         body: JSON.stringify({
             action: 'saveFaceImage',
-            imageData: fvDataUrl,
-            empCode: empCode,
-            timeStatus: timeStatus,
-            rowIndex: rowIndex
+            imageData: dataUrl,
+            empCode: 'face',
+            timeStatus: 'pending'
         }),
         redirect: 'follow'
     })
     .then(function(res) { return res.text(); })
     .then(function(text) {
         console.log('📷 Upload response:', text);
+        fvUploading = false;
         try {
             var result = JSON.parse(text);
-            if (result.status === 'success') {
-                console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
+            if (result.status === 'success' && result.fileUrl) {
                 fvImageUrl = result.fileUrl;
+                console.log('✅ Face URL:', fvImageUrl);
+
+                // reload iframe พร้อม faceImageUrl
+                var iframe = document.getElementById('app');
+                var currentSrc = iframe.src;
+                currentSrc = currentSrc.replace(/&faceImageUrl=[^&]*/g, '');
+                iframe.src = currentSrc + '&faceImageUrl=' + encodeURIComponent(fvImageUrl);
+                console.log('🔄 Reload iframe with faceImageUrl');
+
+                fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
+            } else {
+                console.warn('⚠️ Upload ไม่สำเร็จ:', text);
+                fvImageUrl = '';
+                fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
             }
         } catch(e) {
-            console.warn('Parse error:', e);
+            console.error('Parse error:', e, text);
+            fvImageUrl = '';
+            fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
         }
     })
     .catch(function(err) {
         console.error('❌ Upload error:', err);
+        fvUploading = false;
+        fvImageUrl = '';
+        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ (ไม่สามารถบันทึกรูปได้)');
     });
 }
 
