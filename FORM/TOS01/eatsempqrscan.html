@@ -433,22 +433,45 @@ function fvUploadNow(dataUrl) {
     fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
 }
 
-window.addEventListener('message', function(event) {
-    if (!event.data || !event.data.type) return;
+// ✅ ดักจับตอน iframe โหลดหน้าใหม่ (หลังบันทึกสำเร็จ)
+var fvUploadDone = false; // ป้องกันอัปโหลดซ้ำ
 
-    // ✅ รับจาก GAS ว่าบันทึกสำเร็จแล้ว
-    if (event.data.type === 'GAS_SAVE_SUCCESS') {
-        console.log('✅ GAS บันทึกสำเร็จ row:', event.data.rowIndex);
-        if (fvDataUrl && event.data.rowIndex) {
-            fvUploadAndUpdateRow(
-                fvDataUrl,
-                event.data.empCode || 'face',
-                event.data.timeStatus || 'unknown',
-                event.data.rowIndex
-            );
-        }
+document.getElementById('app').addEventListener('load', function() {
+    // ถ้ายังมีรูปค้างอยู่ และยังไม่ได้อัปโหลด
+    if (fvDataUrl && fvVerified && !fvUploadDone) {
+        fvUploadDone = true;
+        console.log('📤 iframe โหลดใหม่ — อัปโหลดรูป...');
+        fvUploadToGAS(fvDataUrl);
     }
 });
+
+function fvUploadToGAS(dataUrl) {
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+
+    fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+            action    : 'saveFaceImage',
+            imageData : dataUrl,
+            empCode   : 'face',
+            timeStatus: 'unknown'
+            // ไม่ส่ง rowIndex — GAS จะ update แถวล่าสุดแทน
+        }),
+        redirect: 'follow'
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(text) {
+        console.log('📷 Upload response:', text);
+        try {
+            var result = JSON.parse(text);
+            if (result.status === 'success') {
+                console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
+                fvDataUrl = ''; // ล้างหลังอัปโหลดแล้ว
+            }
+        } catch(e) { console.error('Parse error:', e); }
+    })
+    .catch(function(err) { console.error('❌ Upload error:', err); });
+}
 
     
 function fvUploadAndUpdateRow(dataUrl, empCode, timeStatus, rowIndex) {
