@@ -397,6 +397,7 @@ function fvCapture() {
     fvSetStatus('loading', '⏳', 'กำลังอัปโหลดรูปยืนยันตัวตน...');
     fvUpdateOverlay();
     fvUploadNow(fvDataUrl);   // ← upload ทันที
+    fvStartPolling(); // ✅ เพิ่มบรรทัดนี้
 
 }
 
@@ -406,6 +407,12 @@ function fvRetake() {
     fvDataUrl  = '';
     fvImageUrl = '';
     fvUploadDone = false; // ✅ เพิ่มบรรทัดนี้
+    
+    if (fvPollTimer) {     // ✅ เพิ่ม
+        clearInterval(fvPollTimer);
+        fvPollTimer = null;
+    }
+    
     document.getElementById('fvPreviewArea').classList.remove('active');
     document.getElementById('fvBtnRetake').style.display = 'none';
     fvSetStatus('idle', '🎥', 'กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
@@ -436,24 +443,48 @@ function fvUploadNow(dataUrl) {
 
 // ✅ ดักจับตอน iframe โหลดหน้าใหม่ (หลังบันทึกสำเร็จ)
 /* ── Upload รูปหลัง iframe reload (แทน postMessage) ── */
-var fvUploadDone = false;
 var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+var fvPollTimer  = null;
+var fvUploadDone = false;
 
-// ✅ ดักจับ message จาก GAS iframe โดยไม่ผ่าน GAS warden
-window.addEventListener('message', function(event) {
-    if (!event.data || !event.data.type) return;
-    
-    // รับจาก index.html ที่อยู่ใน iframe
-    if (event.data.type === 'FACE_UPLOAD_REQUEST') {
-        console.log('📤 รับ FACE_UPLOAD_REQUEST จาก iframe');
+function fvStartPolling() {
+    if (fvPollTimer) return;
+    console.log('🔍 เริ่ม polling iframe...');
+    fvPollTimer = setInterval(function() {
+        try {
+            var iframe = document.getElementById('app');
+            var iDoc   = iframe.contentDocument || iframe.contentWindow.document;
+            var reportEl = iDoc.getElementById('reportData') || 
+                           iDoc.getElementById('reportContent') ||
+                           iDoc.querySelector('.report-content');
+            if (reportEl && fvDataUrl && fvVerified && !fvUploadDone) {
+                fvUploadDone = true;
+                clearInterval(fvPollTimer);
+                fvPollTimer = null;
+                console.log('📤 พบหน้า report — เริ่มอัปโหลดรูป...');
+                fvUploadToGAS(fvDataUrl);
+            }
+        } catch(e) {
+            clearInterval(fvPollTimer);
+            fvPollTimer = null;
+            console.warn('⚠️ poll ไม่ได้:', e.message);
+            fvUseFallbackTimer();
+        }
+    }, 800);
+}
+
+function fvUseFallbackTimer() {
+    console.log('⏱️ ใช้ fallback timer 4 วินาที...');
+    setTimeout(function() {
         if (fvDataUrl && fvVerified && !fvUploadDone) {
             fvUploadDone = true;
+            console.log('📤 Fallback — เริ่มอัปโหลดรูป...');
             fvUploadToGAS(fvDataUrl);
         }
-    }
-});
-    
+    }, 4000);
+}
 
+    
 function fvUploadToGAS(dataUrl) {
     console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
     fetch(GAS_EXEC_URL, {
