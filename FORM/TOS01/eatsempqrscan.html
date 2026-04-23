@@ -476,7 +476,7 @@ function fvStartPolling() {
                 clearInterval(fvPollTimer);
                 fvPollTimer = null;
                 console.log('📤 พบหน้า report — เริ่มอัปโหลดรูป...');
-                fvUploadToGAS(fvDataUrl);
+                (fvDataUrl);
             }
         } catch(e) {
             clearInterval(fvPollTimer);
@@ -522,7 +522,7 @@ function fvUploadToGAS(dataUrl) {
             var result = JSON.parse(text);
             if (result.status === 'success') {
                 console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
-                fvDataUrl       = '';
+
                 fvUploadDone    = false;
             } else {
                 console.error('❌ Upload failed:', result.message);
