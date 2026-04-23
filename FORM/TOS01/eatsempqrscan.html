@@ -491,18 +491,47 @@ function fvStartPolling() {
 var fvSaveCompleted = false;
 
 function fvUseFallbackTimer() {
-    console.log('⏱️ รอ GAS บันทึกสำเร็จก่อนแล้วค่อย upload...');
+    console.log('⏱️ รอดู iframe title เพื่อจับจังหวะหลังบันทึก...');
+    
+    var initialTitle = '';
+    var titleChanged = false;
     var waitTimer = setInterval(function() {
-        if (fvSaveCompleted && fvDataUrl && fvVerified && !fvUploadDone) {
+        try {
+            var iframe = document.getElementById('app');
+            var currentTitle = iframe.contentWindow.document.title;
+            
+            // เก็บ title แรก
+            if (!initialTitle) {
+                initialTitle = currentTitle;
+                return;
+            }
+            
+            // ถ้า title เปลี่ยน = iframe โหลดหน้าใหม่ (report)
+            if (currentTitle !== initialTitle && !titleChanged) {
+                titleChanged = true;
+                clearInterval(waitTimer);
+                console.log('✅ iframe title เปลี่ยน → บันทึกสำเร็จแล้ว');
+                if (fvDataUrl && fvVerified && !fvUploadDone) {
+                    fvUploadDone = true;
+                    fvUploadToGAS(fvDataUrl);
+                }
+            }
+        } catch(e) {
+            // title ก็ block เช่นกัน → ใช้วิธีสุดท้าย
             clearInterval(waitTimer);
-            fvUploadDone = true;
-            console.log('📤 Fallback — GAS บันทึกแล้ว เริ่มอัปโหลดรูป...');
-            fvUploadToGAS(fvDataUrl);
+            console.warn('⚠️ title ก็อ่านไม่ได้ — ใช้ fixed delay 8 วินาที');
+            setTimeout(function() {
+                if (fvDataUrl && fvVerified && !fvUploadDone) {
+                    fvUploadDone = true;
+                    console.log('📤 Fixed delay — เริ่มอัปโหลดรูป...');
+                    fvUploadToGAS(fvDataUrl);
+                }
+            }, 8000); // รอ 8 วินาที = พอให้ user กรอกข้อมูลและกดบันทึก
         }
-    }, 500); // check ทุก 0.5 วินาที
+    }, 500);
 
-    // safety timeout 60 วินาที
-    setTimeout(function() { clearInterval(waitTimer); }, 60000);
+    // safety timeout
+    setTimeout(function() { clearInterval(waitTimer); }, 120000);
 }
 
 function fvUploadToGAS(dataUrl) {
