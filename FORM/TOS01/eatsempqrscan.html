@@ -439,15 +439,20 @@ function fvUploadNow(dataUrl) {
 var fvUploadDone = false;
 var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('app').addEventListener('load', function() {
+// ✅ ดักจับ message จาก GAS iframe โดยไม่ผ่าน GAS warden
+window.addEventListener('message', function(event) {
+    if (!event.data || !event.data.type) return;
+    
+    // รับจาก index.html ที่อยู่ใน iframe
+    if (event.data.type === 'FACE_UPLOAD_REQUEST') {
+        console.log('📤 รับ FACE_UPLOAD_REQUEST จาก iframe');
         if (fvDataUrl && fvVerified && !fvUploadDone) {
             fvUploadDone = true;
-            console.log('📤 iframe โหลดใหม่ — เริ่มอัปโหลดรูป...');
             fvUploadToGAS(fvDataUrl);
         }
-    });
+    }
 });
+    
 
 function fvUploadToGAS(dataUrl) {
     console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
