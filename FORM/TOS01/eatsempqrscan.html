@@ -394,6 +394,20 @@ function fvCapture() {
     document.getElementById('fvBtnRetake').style.display = '';
 
     fvVerified = true;
+
+    try {
+        var iDoc       = document.getElementById('app').contentDocument 
+                         || document.getElementById('app').contentWindow.document;
+        fvEmpCode      = iDoc.getElementById('empId')    ? iDoc.getElementById('empId').value.trim()    : '';
+        fvCompany      = iDoc.getElementById('company')  ? iDoc.getElementById('company').value.trim()  : '';
+        var tsEl       = iDoc.querySelector('input[name="timeStatus"]:checked');
+        fvTimeStatus   = tsEl ? tsEl.value : '';
+        console.log('📋 บันทึกค่า empCode:', fvEmpCode, 'company:', fvCompany);
+    } catch(e) {
+        console.warn('ดึงค่าจาก iframe ไม่ได้:', e.message);
+    }
+
+    
     fvSetStatus('loading', '⏳', 'กำลังอัปโหลดรูปยืนยันตัวตน...');
     fvUpdateOverlay();
     fvUploadNow(fvDataUrl);   // ← upload ทันที
@@ -473,41 +487,36 @@ function fvStartPolling() {
     }, 800);
 }
 
+// ✅ flag บอกว่า GAS บันทึก Sheet สำเร็จแล้ว
+var fvSaveCompleted = false;
+
 function fvUseFallbackTimer() {
-    console.log('⏱️ ใช้ fallback timer 4 วินาที...');
-    setTimeout(function() {
-        if (fvDataUrl && fvVerified && !fvUploadDone) {
+    console.log('⏱️ รอ GAS บันทึกสำเร็จก่อนแล้วค่อย upload...');
+    var waitTimer = setInterval(function() {
+        if (fvSaveCompleted && fvDataUrl && fvVerified && !fvUploadDone) {
+            clearInterval(waitTimer);
             fvUploadDone = true;
-            console.log('📤 Fallback — เริ่มอัปโหลดรูป...');
+            console.log('📤 Fallback — GAS บันทึกแล้ว เริ่มอัปโหลดรูป...');
             fvUploadToGAS(fvDataUrl);
         }
-    }, 4000);
+    }, 500); // check ทุก 0.5 วินาที
+
+    // safety timeout 60 วินาที
+    setTimeout(function() { clearInterval(waitTimer); }, 60000);
 }
 
 function fvUploadToGAS(dataUrl) {
     console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
-
-    // ✅ ดึงค่าจริงจาก iframe form
-    var iframe     = document.getElementById('app');
-    var iDoc       = iframe.contentDocument || iframe.contentWindow.document;
-    var empCodeEl  = iDoc.getElementById('empId');
-    var companyEl  = iDoc.getElementById('company');
-    var statusEl   = iDoc.querySelector('input[name="timeStatus"]:checked');
-
-    var empCode    = empCodeEl  ? empCodeEl.value.trim()  : 'unknown';
-    var company    = companyEl  ? companyEl.value.trim()  : 'unknown';
-    var timeStatus = statusEl   ? statusEl.value          : 'unknown';
-
-    console.log('📋 empCode:', empCode, 'company:', company, 'status:', timeStatus);
+    console.log('📋 empCode:', fvEmpCode, 'company:', fvCompany, 'status:', fvTimeStatus);
 
     fetch(GAS_EXEC_URL, {
         method  : 'POST',
         body    : JSON.stringify({
             action    : 'saveFaceImage',
             imageData : dataUrl,
-            empCode   : empCode,
-            company   : company,
-            timeStatus: timeStatus
+            empCode   : fvEmpCode    || 'unknown',
+            company   : fvCompany    || 'unknown',
+            timeStatus: fvTimeStatus || 'unknown'
         }),
         redirect: 'follow'
     })
@@ -518,8 +527,9 @@ function fvUploadToGAS(dataUrl) {
             var result = JSON.parse(text);
             if (result.status === 'success') {
                 console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
-                fvDataUrl    = '';
-                fvUploadDone = false;
+                fvDataUrl       = '';
+                fvUploadDone    = false;
+                fvSaveCompleted = false; // reset สำหรับครั้งถัดไป
             } else {
                 console.error('❌ Upload failed:', result.message);
                 fvUploadDone = false;
@@ -527,7 +537,7 @@ function fvUploadToGAS(dataUrl) {
         } catch(e) { console.error('Parse error:', e, text); }
     })
     .catch(function(err) { console.error('❌ Upload error:', err); });
-}   
+}    
 
 
 /* ── เก็บ URL ใน GAS Cache รอ submit ── */
@@ -576,6 +586,14 @@ document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
 document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
 document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
 window.addEventListener('beforeunload', fvStopStream);
+
+// ✅ รับสัญญาณจาก GAS iframe ว่าบันทึกสำเร็จแล้ว
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'FACE_UPLOAD_REQUEST') {
+        console.log('✅ รับสัญญาณบันทึกสำเร็จจาก GAS');
+        fvSaveCompleted = true;
+    }
+});
 
 </script>
 </body>
