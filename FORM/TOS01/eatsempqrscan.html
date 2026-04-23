@@ -588,6 +588,11 @@ window.addEventListener('message', function(event) {
     }
 });
 
+// ✅ ให้ iframe เรียกดึง base64 จาก parent ได้
+window.fvGetImageData = function() {
+    return fvVerified ? fvDataUrl : '';
+};
+    
 </script>
 </body>
 </html>
