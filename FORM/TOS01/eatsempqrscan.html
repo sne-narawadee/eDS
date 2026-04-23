@@ -484,16 +484,30 @@ function fvUseFallbackTimer() {
     }, 4000);
 }
 
-    
 function fvUploadToGAS(dataUrl) {
     console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
+
+    // ✅ ดึงค่าจริงจาก iframe form
+    var iframe     = document.getElementById('app');
+    var iDoc       = iframe.contentDocument || iframe.contentWindow.document;
+    var empCodeEl  = iDoc.getElementById('empId');
+    var companyEl  = iDoc.getElementById('company');
+    var statusEl   = iDoc.querySelector('input[name="timeStatus"]:checked');
+
+    var empCode    = empCodeEl  ? empCodeEl.value.trim()  : 'unknown';
+    var company    = companyEl  ? companyEl.value.trim()  : 'unknown';
+    var timeStatus = statusEl   ? statusEl.value          : 'unknown';
+
+    console.log('📋 empCode:', empCode, 'company:', company, 'status:', timeStatus);
+
     fetch(GAS_EXEC_URL, {
         method  : 'POST',
         body    : JSON.stringify({
             action    : 'saveFaceImage',
             imageData : dataUrl,
-            empCode   : 'face',
-            timeStatus: 'unknown'
+            empCode   : empCode,
+            company   : company,
+            timeStatus: timeStatus
         }),
         redirect: 'follow'
     })
@@ -513,9 +527,8 @@ function fvUploadToGAS(dataUrl) {
         } catch(e) { console.error('Parse error:', e, text); }
     })
     .catch(function(err) { console.error('❌ Upload error:', err); });
-}
+}   
 
-    
 
 /* ── เก็บ URL ใน GAS Cache รอ submit ── */
 var fvCacheKey = 'fv_' + Date.now();
