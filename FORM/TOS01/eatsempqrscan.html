@@ -488,52 +488,18 @@ function fvStartPolling() {
 }
 
 // ✅ flag บอกว่า GAS บันทึก Sheet สำเร็จแล้ว
-var fvSaveCompleted = false;
-
 function fvUseFallbackTimer() {
-    console.log('⏱️ รอดู iframe title เพื่อจับจังหวะหลังบันทึก...');
-    
-    var initialTitle = '';
-    var titleChanged = false;
-    var waitTimer = setInterval(function() {
-        try {
-            var iframe = document.getElementById('app');
-            var currentTitle = iframe.contentWindow.document.title;
-            
-            // เก็บ title แรก
-            if (!initialTitle) {
-                initialTitle = currentTitle;
-                return;
-            }
-            
-            // ถ้า title เปลี่ยน = iframe โหลดหน้าใหม่ (report)
-            if (currentTitle !== initialTitle && !titleChanged) {
-                titleChanged = true;
-                clearInterval(waitTimer);
-                console.log('✅ iframe title เปลี่ยน → บันทึกสำเร็จแล้ว');
-                if (fvDataUrl && fvVerified && !fvUploadDone) {
-                    fvUploadDone = true;
-                    fvUploadToGAS(fvDataUrl);
-                }
-            }
-        } catch(e) {
-            // title ก็ block เช่นกัน → ใช้วิธีสุดท้าย
-            clearInterval(waitTimer);
-            console.warn('⚠️ title ก็อ่านไม่ได้ — ใช้ fixed delay 8 วินาที');
-            setTimeout(function() {
-                if (fvDataUrl && fvVerified && !fvUploadDone) {
-                    fvUploadDone = true;
-                    console.log('📤 Fixed delay — เริ่มอัปโหลดรูป...');
-                    fvUploadToGAS(fvDataUrl);
-                }
-            }, 8000); // รอ 8 วินาที = พอให้ user กรอกข้อมูลและกดบันทึก
+    console.log('⏱️ รอ 10 วินาทีแล้วอัปโหลดรูป...');
+    setTimeout(function() {
+        if (fvDataUrl && fvVerified && !fvUploadDone) {
+            fvUploadDone = true;
+            console.log('📤 เริ่มอัปโหลดรูป...');
+            fvUploadToGAS(fvDataUrl);
         }
-    }, 500);
-
-    // safety timeout
-    setTimeout(function() { clearInterval(waitTimer); }, 120000);
+    }, 15000);
 }
 
+    
 function fvUploadToGAS(dataUrl) {
     console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
     console.log('📋 empCode:', fvEmpCode, 'company:', fvCompany, 'status:', fvTimeStatus);
@@ -558,7 +524,6 @@ function fvUploadToGAS(dataUrl) {
                 console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
                 fvDataUrl       = '';
                 fvUploadDone    = false;
-                fvSaveCompleted = false; // reset สำหรับครั้งถัดไป
             } else {
                 console.error('❌ Upload failed:', result.message);
                 fvUploadDone = false;
@@ -620,7 +585,6 @@ window.addEventListener('beforeunload', fvStopStream);
 window.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'FACE_UPLOAD_REQUEST') {
         console.log('✅ รับสัญญาณบันทึกสำเร็จจาก GAS');
-        fvSaveCompleted = true;
     }
 });
 
