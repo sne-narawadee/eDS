@@ -380,7 +380,6 @@ function fvCapture() {
     ctx.textBaseline = 'middle';
     ctx.fillText('⏱ ' + stamp, padding, canvas.height - barH / 2);
 
-    // ✅ เก็บ base64 ไว้ — index.html จะดึงผ่าน window.fvGetImageData()
     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
     console.log('✅ รูปพร้อมแล้ว ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
 
@@ -391,12 +390,51 @@ function fvCapture() {
     document.getElementById('fvBtnCapture').disabled = true;
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnRetake').style.display = '';
-
     fvVerified = true;
-    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
-    fvUpdateOverlay();
-}
 
+    // ✅ POST base64 ไป GAS CacheService แล้ว reload iframe พร้อม fvKey
+    fvSetStatus('loading', '⏳', 'กำลังเตรียมข้อมูล...');
+
+    var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+
+    fetch(GAS_EXEC_URL, {
+        method  : 'POST',
+        body    : JSON.stringify({
+            action   : 'cacheFaceUrl',
+            imageData: fvDataUrl
+        }),
+        redirect: 'follow'
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(text) {
+        console.log('📦 Cache response:', text);
+        try {
+            var result = JSON.parse(text);
+            if (result.status === 'success' && result.cacheKey) {
+                console.log('✅ Cache key:', result.cacheKey);
+
+                // reload iframe พร้อม fvKey
+                var iframe = document.getElementById('app');
+                var src    = iframe.src.replace(/&fvKey=[^&]*/g, '');
+                iframe.src = src + '&fvKey=' + encodeURIComponent(result.cacheKey);
+                console.log('🔄 Reload iframe with fvKey:', result.cacheKey);
+            } else {
+                console.warn('⚠️ Cache ไม่สำเร็จ:', text);
+            }
+        } catch(e) {
+            console.error('Parse error:', e, text);
+        }
+        // ✅ ไม่ว่า cache จะสำเร็จหรือไม่ — เปิด iframe ให้ใช้งานได้เสมอ
+        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+        fvUpdateOverlay();
+    })
+    .catch(function(err) {
+        console.error('❌ Cache error:', err);
+        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+        fvUpdateOverlay();
+    });
+}
+  
 /* ── ถ่ายใหม่ ── */
 function fvRetake() {
     fvVerified = false;
