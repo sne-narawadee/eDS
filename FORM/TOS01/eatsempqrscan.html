@@ -100,46 +100,58 @@ body {
 /* ✅ Compact row หลังถ่ายรูปเสร็จ */
 .fv-compact-row {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     background: #dcfce7;
     border: 1px solid #86efac;
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 12px;
 }
 
 .fv-thumb-wrap {
-    flex-shrink: 0;
-    width: 64px;
-    height: 64px;
+    position: relative;
+    width: 80px;
+    height: 80px;
     border-radius: 8px;
     overflow: hidden;
     border: 2px solid #16a34a;
 }
 
+/* ✅ timestamp ด้านบนสุดของรูป */
+.fv-thumb-stamp {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    text-align: center;
+    padding: 2px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    z-index: 2;
+}
+
 #fvCanvas {
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     display: block;
     object-fit: cover;
 }
 
 .fv-compact-info {
-    flex: 1;
-    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
 }
 
 .fv-compact-status {
     font-size: 13px;
     font-weight: 700;
     color: #166534;
-    margin-bottom: 2px;
-}
-
-.fv-compact-stamp {
-    font-size: 11px;
-    color: #4b7c59;
-    margin-bottom: 6px;
+    text-align: center;
 }
 
 .fv-compact-retake {
@@ -147,7 +159,7 @@ body {
     color: #475569;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
-    padding: 4px 10px;
+    padding: 4px 14px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -247,11 +259,11 @@ iframe {
             <!-- ✅ Compact layout หลังถ่ายรูปเสร็จ -->
             <div class="fv-compact-row">
                 <div class="fv-thumb-wrap">
+                    <div class="fv-thumb-stamp" id="fvPreviewBadge"></div>
                     <canvas id="fvCanvas"></canvas>
                 </div>
                 <div class="fv-compact-info">
                     <div class="fv-compact-status">✅ ยืนยันตัวตนสำเร็จ</div>
-                    <div class="fv-compact-stamp" id="fvPreviewBadge"></div>
                     <button class="fv-compact-retake" id="fvBtnRetake2">🔄 ถ่ายใหม่</button>
                 </div>
             </div>
@@ -439,7 +451,7 @@ function fvCapture() {
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
     document.getElementById('fvPreviewArea').classList.add('active');
-    document.getElementById('fvPreviewBadge').textContent = stamp;  // ✅ แสดงแค่ timestamp
+    document.getElementById('fvPreviewBadge').textContent = stamp;  // ✅ timestamp บนรูป
     document.getElementById('fvBtnCapture').disabled = true;
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnRetake').style.display = 'none';  // ซ่อนปุ่มเดิม
