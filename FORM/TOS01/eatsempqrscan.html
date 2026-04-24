@@ -23,7 +23,7 @@ body {
 .fv-panel {
     background: white;
     border-bottom: 3px solid #56ab2f;
-    padding: 16px;
+    padding: 10px 16px;  /* ✅ ลด padding บน-ล่าง */
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -31,7 +31,7 @@ body {
     font-weight: 700;
     color: #166534;
     font-size: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;  /* ✅ ลดจาก 10px */
     display: flex;
     align-items: center;
     gap: 6px;
@@ -41,11 +41,11 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 8px 12px;   /* ✅ ลด padding */
     border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: 8px;  /* ✅ ลดจาก 10px */
     transition: all 0.3s;
 }
 
@@ -62,8 +62,8 @@ body {
     background: #000;
     width: 100%;
     aspect-ratio: 4/3;
-    max-height: 260px;
-    margin-bottom: 10px;
+    max-height: 160px;  /* ✅ ลดจาก 260px */
+    margin-bottom: 8px;
 }
 .fv-camera-area.active { display: block; }
 
@@ -79,7 +79,7 @@ body {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 130px; height: 130px;
+    width: 90px; height: 90px;  /* ✅ ลดจาก 130px */
     border: 3px dashed rgba(134,239,172,0.85);
     border-radius: 50%;
     pointer-events: none;
@@ -93,15 +93,21 @@ body {
 
 .fv-preview-area {
     display: none;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     border: 2px solid #86efac;
     position: relative;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    max-height: 120px;  /* ✅ จำกัดความสูง preview */
 }
 .fv-preview-area.active { display: block; }
 
-#fvCanvas { width: 100%; display: block; }
+#fvCanvas { 
+    width: 100%; 
+    display: block;
+    max-height: 120px;  /* ✅ จำกัดความสูง canvas */
+    object-fit: cover;
+}
 
 .fv-preview-badge {
     position: absolute;
@@ -124,7 +130,7 @@ body {
 .fv-btn {
     flex: 1;
     min-width: 100px;
-    padding: 10px 12px;
+    padding: 8px 12px;   /* ✅ ลด padding */
     border: none;
     border-radius: 8px;
     font-size: 13px;
@@ -142,9 +148,9 @@ body {
 .fv-btn-retake  { background: #f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
 .fv-no-upload-notice {
-    font-size: 11px;
+    font-size: 10px;     /* ✅ ลดจาก 11px */
     color: #9ca3af;
-    margin-top: 8px;
+    margin-top: 6px;     /* ✅ ลดจาก 8px */
     text-align: center;
 }
 
