@@ -14,14 +14,12 @@ body {
     min-height: 100vh;
 }
 
-/* ── Layout ── */
 .page-wrapper {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
 }
 
-/* ── Face Verify Panel (ด้านบน) ── */
 .fv-panel {
     background: white;
     border-bottom: 3px solid #56ab2f;
@@ -56,7 +54,6 @@ body {
 .fv-status-bar.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
 .fv-status-bar.loading { background:#fef9c3; color:#854d0e; border:1px solid #fde68a; }
 
-/* Camera */
 .fv-camera-area {
     display: none;
     position: relative;
@@ -94,7 +91,6 @@ body {
     50%      { border-color: rgba(74,222,128,1); box-shadow: 0 0 0 8px rgba(134,239,172,0); }
 }
 
-/* Preview */
 .fv-preview-area {
     display: none;
     border-radius: 10px;
@@ -119,7 +115,6 @@ body {
     white-space: nowrap;
 }
 
-/* Buttons */
 .fv-btn-row {
     display: flex;
     gap: 8px;
@@ -153,12 +148,11 @@ body {
     text-align: center;
 }
 
-/* ── iframe (ด้านล่าง) ── */
 .iframe-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
-    position: relative; /* ← สำคัญมาก */
+    position: relative;
 }
 
 iframe {
@@ -169,7 +163,6 @@ iframe {
     display: block;
 }
 
-/* overlay บล็อก iframe เมื่อยังไม่ยืนยันตัวตน */
 .iframe-block-overlay {
     position: absolute;
     top: 0; left: 0;
@@ -190,7 +183,6 @@ iframe {
     text-align: center;
     padding: 0 20px;
 }
-    
 </style>
 </head>
 <body>
@@ -225,13 +217,10 @@ iframe {
 
     <!-- iframe GAS -->
     <div class="iframe-wrapper">
-    
-        <!-- overlay บล็อกก่อนยืนยันตัวตน -->
         <div class="iframe-block-overlay" id="iframeBlockOverlay">
             <p>📷 กรุณายืนยันตัวตนด้วยใบหน้าก่อน</p>
             <p style="font-size:13px; font-weight:400;">กดปุ่ม "เปิดกล้อง" ด้านบน แล้วถ่ายภาพ</p>
         </div>
-    
         <iframe
             id="app"
             allow="geolocation"
@@ -242,11 +231,12 @@ iframe {
 </div>
 
 <script>
-    
-/* ── Load GAS URL ── */
+
+/* ══════════════════════════════════════
+   โหลด GAS iframe
+   ══════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(window.location.search);
-
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
     var query = [];
@@ -268,13 +258,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /* ══════════════════════════════════════
-   📷 Face Verification
+   📷 Face Verification — ตัวแปร global
    ══════════════════════════════════════ */
-var fvStream    = null;
-var fvVerified  = false;
-var fvDataUrl   = '';   // ✅ เก็บ base64 รูปไว้ส่งให้ GAS ทีหลัง
-var fvImageUrl  = '';   // ✅ เก็บ URL หลังอัปโหลดแล้ว
+var fvStream   = null;
+var fvVerified = false;
+var fvDataUrl  = ''; // เก็บ base64 รูปไว้ให้ index.html ดึงไป
 
+/* ── helper ── */
 function fvSetStatus(type, icon, text) {
     var bar = document.getElementById('fvStatusBar');
     bar.className = 'fv-status-bar ' + type;
@@ -287,6 +277,12 @@ function fvStopStream() {
         fvStream.getTracks().forEach(function(t) { t.stop(); });
         fvStream = null;
     }
+}
+
+function fvUpdateOverlay() {
+    var overlay = document.getElementById('iframeBlockOverlay');
+    if (!overlay) return;
+    overlay.style.display = fvVerified ? 'none' : 'flex';
 }
 
 /* ── เปิดกล้อง ── */
@@ -311,7 +307,6 @@ function fvOpenCamera() {
             fvSetStatus('loading', '📷', 'กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
             fvVerified = false;
             fvDataUrl  = '';
-            fvImageUrl = '';
         })
         .catch(function(err) {
             console.error('Camera error:', err.name, err.message);
@@ -365,6 +360,8 @@ function fvCapture() {
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
+
+    // timestamp overlay
     var now = new Date();
     var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
     var stamp = pad(now.getDate()) + '/' +
@@ -383,7 +380,9 @@ function fvCapture() {
     ctx.textBaseline = 'middle';
     ctx.fillText('⏱ ' + stamp, padding, canvas.height - barH / 2);
 
-    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);  // ✅ เก็บไว้
+    // ✅ เก็บ base64 ไว้ — index.html จะดึงผ่าน window.fvGetImageData()
+    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+    console.log('✅ รูปพร้อมแล้ว ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
 
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
@@ -394,39 +393,14 @@ function fvCapture() {
     document.getElementById('fvBtnRetake').style.display = '';
 
     fvVerified = true;
-
-    try {
-        var iDoc       = document.getElementById('app').contentDocument 
-                         || document.getElementById('app').contentWindow.document;
-        fvEmpCode      = iDoc.getElementById('empId')    ? iDoc.getElementById('empId').value.trim()    : '';
-        fvCompany      = iDoc.getElementById('company')  ? iDoc.getElementById('company').value.trim()  : '';
-        var tsEl       = iDoc.querySelector('input[name="timeStatus"]:checked');
-        fvTimeStatus   = tsEl ? tsEl.value : '';
-        console.log('📋 บันทึกค่า empCode:', fvEmpCode, 'company:', fvCompany);
-    } catch(e) {
-        console.warn('ดึงค่าจาก iframe ไม่ได้:', e.message);
-    }
-
-    
-    fvSetStatus('loading', '⏳', 'กำลังอัปโหลดรูปยืนยันตัวตน...');
+    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
     fvUpdateOverlay();
-    fvUploadNow(fvDataUrl);   // ← upload ทันที
-    fvStartPolling(); // ✅ เพิ่มบรรทัดนี้
-
 }
 
 /* ── ถ่ายใหม่ ── */
 function fvRetake() {
     fvVerified = false;
     fvDataUrl  = '';
-    fvImageUrl = '';
-    fvUploadDone = false; // ✅ เพิ่มบรรทัดนี้
-    
-    if (fvPollTimer) {     // ✅ เพิ่ม
-        clearInterval(fvPollTimer);
-        fvPollTimer = null;
-    }
-    
     document.getElementById('fvPreviewArea').classList.remove('active');
     document.getElementById('fvBtnRetake').style.display = 'none';
     fvSetStatus('idle', '🎥', 'กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
@@ -435,164 +409,22 @@ function fvRetake() {
     fvUpdateOverlay();
 }
 
-/* ── อัปเดต overlay ── */
-function fvUpdateOverlay() {
-    var overlay = document.getElementById('iframeBlockOverlay');
-    if (!overlay) return;
-    overlay.style.display = fvVerified ? 'none' : 'flex';
-}
+/* ══════════════════════════════════════
+   ✅ ให้ index.html (GAS) ดึง base64 ได้
+   เรียกผ่าน window.parent.fvGetImageData()
+   ══════════════════════════════════════ */
+window.fvGetImageData = function() {
+    console.log('📷 fvGetImageData ถูกเรียก — fvVerified:', fvVerified, 
+                'ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+    return fvVerified ? fvDataUrl : '';
+};
 
-/* ── Upload รูปทันทีหลังถ่าย ── */
-var fvDataUrl  = '';
-var fvImageUrl = '';
-var fvUploading = false;
-
-function fvUploadNow(dataUrl) {
-    // ✅ เก็บ base64 ไว้รอ submit เสร็จ ไม่ต้อง upload ตอนนี้
-    fvDataUrl = dataUrl;
-    fvUploading = false;
-    console.log('✅ รูปพร้อมแล้ว ขนาด:', Math.round(dataUrl.length/1024), 'KB');
-    fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — พร้อมบันทึกข้อมูล');
-}
-
-// ✅ ดักจับตอน iframe โหลดหน้าใหม่ (หลังบันทึกสำเร็จ)
-/* ── Upload รูปหลัง iframe reload (แทน postMessage) ── */
-var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
-var fvPollTimer  = null;
-var fvUploadDone = false;
-
-function fvStartPolling() {
-    if (fvPollTimer) return;
-    console.log('🔍 เริ่ม polling iframe...');
-    fvPollTimer = setInterval(function() {
-        try {
-            var iframe = document.getElementById('app');
-            var iDoc   = iframe.contentDocument || iframe.contentWindow.document;
-            var reportEl = iDoc.getElementById('reportData') || 
-                           iDoc.getElementById('reportContent') ||
-                           iDoc.querySelector('.report-content');
-            if (reportEl && fvDataUrl && fvVerified && !fvUploadDone) {
-                fvUploadDone = true;
-                clearInterval(fvPollTimer);
-                fvPollTimer = null;
-                console.log('📤 พบหน้า report — เริ่มอัปโหลดรูป...');
-                (fvDataUrl);
-            }
-        } catch(e) {
-            clearInterval(fvPollTimer);
-            fvPollTimer = null;
-            console.warn('⚠️ poll ไม่ได้:', e.message);
-            fvUseFallbackTimer();
-        }
-    }, 800);
-}
-
-// ✅ flag บอกว่า GAS บันทึก Sheet สำเร็จแล้ว
-function fvUseFallbackTimer() {
-    console.log('⏱️ รอ 10 วินาทีแล้วอัปโหลดรูป...');
-    setTimeout(function() {
-        if (fvDataUrl && fvVerified && !fvUploadDone) {
-            fvUploadDone = true;
-            console.log('📤 เริ่มอัปโหลดรูป...');
-            fvUploadToGAS(fvDataUrl);
-        }
-    }, 15000);
-}
-
-    
-function fvUploadToGAS(dataUrl) {
-    console.log('📤 กำลัง upload ขนาด:', Math.round(dataUrl.length/1024), 'KB');
-    console.log('📋 empCode:', fvEmpCode, 'company:', fvCompany, 'status:', fvTimeStatus);
-
-    fetch(GAS_EXEC_URL, {
-        method  : 'POST',
-        body    : JSON.stringify({
-            action    : 'saveFaceImage',
-            imageData : dataUrl,
-            empCode   : fvEmpCode    || 'unknown',
-            company   : fvCompany    || 'unknown',
-            timeStatus: fvTimeStatus || 'unknown'
-        }),
-        redirect: 'follow'
-    })
-    .then(function(res) { return res.text(); })
-    .then(function(text) {
-        console.log('📷 Upload response:', text);
-        try {
-            var result = JSON.parse(text);
-            if (result.status === 'success') {
-                console.log('✅ รูปบันทึกแล้ว:', result.fileUrl);
-
-                fvUploadDone    = false;
-            } else {
-                console.error('❌ Upload failed:', result.message);
-                fvUploadDone = false;
-            }
-        } catch(e) { console.error('Parse error:', e, text); }
-    })
-    .catch(function(err) { console.error('❌ Upload error:', err); });
-}    
-
-
-/* ── เก็บ URL ใน GAS Cache รอ submit ── */
-var fvCacheKey = 'fv_' + Date.now();
-
-function fvSaveUrlToCache(fileUrl) {
-    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
-
-    fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-            action: 'cacheFaceUrl',
-            cacheKey: fvCacheKey,
-            fileUrl: fileUrl
-        }),
-        redirect: 'follow'
-    })
-    .then(function(res) { return res.text(); })
-    .then(function(text) {
-        console.log('✅ Cache saved:', text);
-
-        // ✅ reload iframe พร้อม fvKey
-        var iframe = document.getElementById('app');
-        var currentSrc = iframe.src;
-        currentSrc = currentSrc.replace(/&fvKey=[^&]*/g, '');
-        iframe.src = currentSrc + '&fvKey=' + encodeURIComponent(fvCacheKey);
-        console.log('🔄 Reload iframe with fvKey:', fvCacheKey);
-
-        // ✅ ซ่อน overlay เมื่อ iframe โหลดเสร็จ
-        iframe.onload = function() {
-            var overlay = document.getElementById('iframeBlockOverlay');
-            if (overlay) overlay.style.display = 'none';
-            console.log('✅ iframe โหลดเสร็จ พร้อมบันทึก');
-        };
-    })
-    .catch(function(err) {
-        console.error('Cache error:', err);
-        // เปิด iframe ให้ใช้ได้แม้ cache ไม่สำเร็จ
-        var overlay = document.getElementById('iframeBlockOverlay');
-        if (overlay) overlay.style.display = 'none';
-    });
-}
-
-/* ── bind ── */    
+/* ── bind ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
 document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
 document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
 window.addEventListener('beforeunload', fvStopStream);
 
-// ✅ รับสัญญาณจาก GAS iframe ว่าบันทึกสำเร็จแล้ว
-window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'FACE_UPLOAD_REQUEST') {
-        console.log('✅ รับสัญญาณบันทึกสำเร็จจาก GAS');
-    }
-});
-
-// ✅ ให้ iframe เรียกดึง base64 จาก parent ได้
-window.fvGetImageData = function() {
-    return fvVerified ? fvDataUrl : '';
-};
-    
 </script>
 </body>
 </html>
