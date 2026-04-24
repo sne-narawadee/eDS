@@ -23,7 +23,7 @@ body {
 .fv-panel {
     background: white;
     border-bottom: 3px solid #56ab2f;
-    padding: 10px 16px;  /* ✅ ลด padding บน-ล่าง */
+    padding: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -31,7 +31,7 @@ body {
     font-weight: 700;
     color: #166534;
     font-size: 14px;
-    margin-bottom: 6px;  /* ✅ ลดจาก 10px */
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -41,11 +41,11 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;   /* ✅ ลด padding */
+    padding: 10px 12px;
     border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 8px;  /* ✅ ลดจาก 10px */
+    margin-bottom: 10px;
     transition: all 0.3s;
 }
 
@@ -62,8 +62,8 @@ body {
     background: #000;
     width: 100%;
     aspect-ratio: 4/3;
-    max-height: 160px;  /* ✅ ลดจาก 260px */
-    margin-bottom: 8px;
+    max-height: 260px;
+    margin-bottom: 10px;
 }
 .fv-camera-area.active { display: block; }
 
@@ -79,7 +79,7 @@ body {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 90px; height: 90px;  /* ✅ ลดจาก 130px */
+    width: 130px; height: 130px;
     border: 3px dashed rgba(134,239,172,0.85);
     border-radius: 50%;
     pointer-events: none;
@@ -93,33 +93,68 @@ body {
 
 .fv-preview-area {
     display: none;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 2px solid #86efac;
-    position: relative;
-    margin-bottom: 8px;
-    max-height: 120px;  /* ✅ จำกัดความสูง preview */
+    margin-bottom: 10px;
 }
 .fv-preview-area.active { display: block; }
 
-#fvCanvas { 
-    width: 100%; 
+/* ✅ Compact row หลังถ่ายรูปเสร็จ */
+.fv-compact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.fv-thumb-wrap {
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #16a34a;
+}
+
+#fvCanvas {
+    width: 64px;
+    height: 64px;
     display: block;
-    max-height: 120px;  /* ✅ จำกัดความสูง canvas */
     object-fit: cover;
 }
 
-.fv-preview-badge {
-    position: absolute;
-    bottom: 8px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(22,101,52,0.85);
-    color: #fff;
-    font-size: 11px;
-    padding: 4px 14px;
-    border-radius: 20px;
-    white-space: nowrap;
+.fv-compact-info {
+    flex: 1;
+    min-width: 0;
 }
+
+.fv-compact-status {
+    font-size: 13px;
+    font-weight: 700;
+    color: #166534;
+    margin-bottom: 2px;
+}
+
+.fv-compact-stamp {
+    font-size: 11px;
+    color: #4b7c59;
+    margin-bottom: 6px;
+}
+
+.fv-compact-retake {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ซ่อน badge และปุ่มเดิม */
+.fv-preview-badge { display: none; }
 
 .fv-btn-row {
     display: flex;
@@ -130,7 +165,7 @@ body {
 .fv-btn {
     flex: 1;
     min-width: 100px;
-    padding: 8px 12px;   /* ✅ ลด padding */
+    padding: 10px 12px;
     border: none;
     border-radius: 8px;
     font-size: 13px;
@@ -148,9 +183,9 @@ body {
 .fv-btn-retake  { background: #f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
 .fv-no-upload-notice {
-    font-size: 10px;     /* ✅ ลดจาก 11px */
+    font-size: 11px;
     color: #9ca3af;
-    margin-top: 6px;     /* ✅ ลดจาก 8px */
+    margin-top: 8px;
     text-align: center;
 }
 
@@ -209,8 +244,17 @@ iframe {
         </div>
 
         <div class="fv-preview-area" id="fvPreviewArea">
-            <canvas id="fvCanvas"></canvas>
-            <div class="fv-preview-badge" id="fvPreviewBadge">✅ ยืนยันตัวตนแล้ว</div>
+            <!-- ✅ Compact layout หลังถ่ายรูปเสร็จ -->
+            <div class="fv-compact-row">
+                <div class="fv-thumb-wrap">
+                    <canvas id="fvCanvas"></canvas>
+                </div>
+                <div class="fv-compact-info">
+                    <div class="fv-compact-status">✅ ยืนยันตัวตนสำเร็จ</div>
+                    <div class="fv-compact-stamp" id="fvPreviewBadge"></div>
+                    <button class="fv-compact-retake" id="fvBtnRetake2">🔄 ถ่ายใหม่</button>
+                </div>
+            </div>
         </div>
 
         <div class="fv-btn-row">
@@ -395,10 +439,10 @@ function fvCapture() {
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
     document.getElementById('fvPreviewArea').classList.add('active');
-    document.getElementById('fvPreviewBadge').textContent = '✅ ยืนยันตัวตนแล้ว — ' + stamp;
+    document.getElementById('fvPreviewBadge').textContent = stamp;  // ✅ แสดงแค่ timestamp
     document.getElementById('fvBtnCapture').disabled = true;
     document.getElementById('fvBtnOpen').disabled    = false;
-    document.getElementById('fvBtnRetake').style.display = '';
+    document.getElementById('fvBtnRetake').style.display = 'none';  // ซ่อนปุ่มเดิม
     fvVerified = true;
 
     // ✅ POST base64 ไป GAS CacheService แล้ว reload iframe พร้อม fvKey
@@ -479,6 +523,7 @@ window.fvGetImageData = function() {
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
 document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
 document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
+document.getElementById('fvBtnRetake2').addEventListener('click', fvRetake); // ✅ compact button
 window.addEventListener('beforeunload', fvStopStream);
 
 </script>
