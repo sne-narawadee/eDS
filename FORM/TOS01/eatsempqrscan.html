@@ -235,6 +235,7 @@ iframe {
 /* ══════════════════════════════════════
    โหลด GAS iframe
    ══════════════════════════════════════ */
+var fvGasBaseUrl = ''; // ✅ เก็บ GAS base URL
 document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(window.location.search);
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
@@ -253,6 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var finalUrl = GAS_URL + (query.length ? '?' + query.join('&') : '');
     console.log('Load GAS:', finalUrl);
     document.getElementById('app').src = finalUrl;
+    fvGasBaseUrl = finalUrl; // ✅ เก็บ URL จริงไว้ใช้ตอน reload
 
     fvUpdateOverlay();
 });
@@ -414,10 +416,11 @@ function fvCapture() {
                 console.log('✅ Cache key:', result.cacheKey);
 
                 // reload iframe พร้อม fvKey
+                // ✅ ใหม่ — ใช้ GAS base URL ที่เก็บไว้
                 var iframe = document.getElementById('app');
-                var src    = iframe.src.replace(/&fvKey=[^&]*/g, '');
+                var src    = fvGasBaseUrl.replace(/&fvKey=[^&]*/g, '');
                 iframe.src = src + '&fvKey=' + encodeURIComponent(result.cacheKey);
-                console.log('🔄 Reload iframe with fvKey:', result.cacheKey);
+                console.log('🔄 Reload iframe:', iframe.src);
             } else {
                 console.warn('⚠️ Cache ไม่สำเร็จ:', text);
             }
