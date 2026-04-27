@@ -1,1 +1,91 @@
+<!-------- GitHub : eatsempqrscan.html ------>
 
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Employee Time Attendance</title>
+
+<style>
+
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    background:#ffffff;
+    overflow:hidden;
+}
+
+iframe{
+    border:none;
+    width:100%;
+    height:100vh;
+    display:block;
+}
+
+</style>
+
+<script>
+
+    document.addEventListener("DOMContentLoaded", function(){
+    
+    const params = new URLSearchParams(window.location.search);
+    
+    const empCode = params.get("empCode");
+    const spreadsheetId = params.get("spreadsheetId");
+    const sheetName = params.get("sheetName");
+    const page = params.get("page");
+    
+    const GAS_URL =
+    "https://script.google.com/macros/s/AKfycbz4FfTL491OQLww9nGdJvQrdJg36DQ-ww8vVZUpQE5SyoXGMtBtsmOMqFRnZivI5lY/exec";
+    
+    let url = GAS_URL;
+    
+    let query = [];
+    
+    if(page){
+    query.push("page=" + encodeURIComponent(page));
+    }
+    
+    if(empCode){
+    query.push("empCode=" + encodeURIComponent(empCode));
+    }
+    
+    if(spreadsheetId){
+    query.push("spreadsheetId=" + encodeURIComponent(spreadsheetId));
+    }
+    
+    if(sheetName){
+    query.push("sheetName=" + encodeURIComponent(sheetName));
+    }
+    
+    if(query.length){
+    url += "?" + query.join("&");
+    }
+    
+    console.log("Load GAS:", url);
+    
+    document.getElementById("app").src = url;
+    
+    });
+
+</script>
+
+</head>
+
+<body>
+
+<iframe
+id="app"
+allow="geolocation"
+loading="lazy">
+</iframe>
+
+</body>
+
+</html>
