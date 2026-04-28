@@ -594,19 +594,30 @@ function fvCapture() {
     }
 
     if (navigator.geolocation) {
+        // enableHighAccuracy:false → ใช้ network location แทน GPS จริง (เร็วกว่า ไม่ต้อง signal)
+        // timeout 15 วิ → มือถือบางรุ่นช้า
+        var geoOptions = { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 };
+
+        console.log('📍 กำลังขอ GPS...');
+        var cs2 = document.getElementById('fvCompactStatus');
+        if (cs2) cs2.textContent = '📍 กำลังขอพิกัด GPS...';
+
         navigator.geolocation.getCurrentPosition(
             function(pos) {
                 var lat = pos.coords.latitude.toFixed(6);
                 var lng = pos.coords.longitude.toFixed(6);
+                console.log('✅ GPS ได้:', lat, lng, 'accuracy:', pos.coords.accuracy, 'm');
                 fvFinalizeAndCache(lat, lng);
             },
             function(err) {
-                console.warn('⚠️ GPS error:', err.message);
+                // code 1=PERMISSION_DENIED, 2=UNAVAILABLE, 3=TIMEOUT
+                console.warn('⚠️ GPS error code:', err.code, '—', err.message);
                 fvFinalizeAndCache('', '');
             },
-            { timeout: 5000, maximumAge: 30000 }
+            geoOptions
         );
     } else {
+        console.warn('⚠️ Browser ไม่รองรับ Geolocation');
         fvFinalizeAndCache('', '');
     }
 }
