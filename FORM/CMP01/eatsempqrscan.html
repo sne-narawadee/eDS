@@ -508,9 +508,14 @@ function fvDoCache(retryCount) {
 
     var attempt = retryCount + 1;
     console.log('📦 Cache attempt ' + attempt + '/' + MAX_RETRY + ' — ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
-    if (retryCount > 0) {
-        fvSetStatus('loading', '⏳', 'กำลังบันทึก... (ลองครั้งที่ ' + attempt + ')');
-    }
+
+    // แสดง loading ทุก attempt (รวม attempt แรก)
+    var statusText = retryCount === 0
+        ? 'กำลังบันทึกภาพยืนยันตัวตน...'
+        : 'กำลังบันทึก... (ลองครั้งที่ ' + attempt + ')';
+    fvSetStatus('loading', '⏳', statusText);
+    var csLoading = document.getElementById('fvCompactStatus');
+    if (csLoading) csLoading.textContent = '⏳ ' + statusText;
 
     fetch(GAS_EXEC_URL, {
         method  : 'POST',
@@ -635,7 +640,7 @@ function fvCapture() {
 
         function doDrawAndCache(addr) {
             fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, addr || '');
-            fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            fvDataUrl = canvas.toDataURL('image/jpeg', 0.60);  // ลด quality ป้องกัน GAS timeout (เดิม 0.82)
             console.log('✅ รูปพร้อม ขนาด:', Math.round(fvDataUrl.length/1024), 'KB', addr ? '(มี address)' : '(ไม่มี address)');
             fvDoCache();
         }
