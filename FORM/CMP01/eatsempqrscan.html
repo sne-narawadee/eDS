@@ -296,7 +296,45 @@ iframe {
    โหลด GAS iframe
    ══════════════════════════════════════ */
 var fvGasBaseUrl = '';
+
+/* ══════════════════════════════════════
+   📍 Cache พิกัด GPS ไว้ล่วงหน้า
+   ขอทันทีก่อน iframe โหลด เพื่อให้ Chrome
+   แสดง permission popup บน parent page
+   (iframe cross-origin ทำให้ Chrome บล็อก
+   geolocation หาก parent ยังไม่ได้รับ permission)
+   ══════════════════════════════════════ */
+var fvCachedLat = '';
+var fvCachedLng = '';
+var fvGpsReady  = false;  // true = ได้พิกัดแล้ว (หรือ timeout แล้ว)
+
+function fvPreloadGps() {
+    if (!navigator.geolocation) {
+        console.warn('⚠️ Geolocation ไม่รองรับ');
+        fvGpsReady = true;
+        return;
+    }
+    console.log('📍 Pre-loading GPS permission...');
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            fvCachedLat = pos.coords.latitude.toFixed(6);
+            fvCachedLng = pos.coords.longitude.toFixed(6);
+            fvGpsReady  = true;
+            console.log('✅ GPS cached:', fvCachedLat, fvCachedLng, '±' + Math.round(pos.coords.accuracy) + 'm');
+        },
+        function(err) {
+            fvGpsReady = true;
+            console.warn('⚠️ GPS preload error code:', err.code, '—', err.message);
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+    );
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // ── 1) ขอ GPS ก่อน ──
+    fvPreloadGps();
+
+    // ── 2) โหลด iframe ──
     var params = new URLSearchParams(window.location.search);
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
@@ -562,10 +600,9 @@ function fvCapture() {
     var cs = document.getElementById('fvCompactStatus');
     if (cs) cs.textContent = '⏳ กำลังระบุตำแหน่ง GPS...';
 
-    // ── ✅ รอ GPS ก่อน แล้วค่อย reverse geocode แล้วค่อย cache ──
+    // ── reverse geocode + วาด bar + cache ──
     function fvFinalizeAndCache(lat, lng) {
         if (lat && lng) {
-            // ── ดึง address จาก Nominatim (reverse geocode) ──
             var geocodeUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th';
             fetch(geocodeUrl, { headers: { 'Accept-Language': 'th' } })
                 .then(function(r) { return r.json(); })
@@ -574,18 +611,16 @@ function fvCapture() {
                     console.log('📍 Address:', addr);
                     fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, addr);
                     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                    console.log('✅ รูปพร้อมพร้อม GPS+Address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+                    console.log('✅ รูปพร้อม GPS+Address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
                     fvDoCache();
                 })
                 .catch(function() {
-                    // geocode ไม่ได้ — ใช้แค่พิกัด
                     fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, '');
                     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                    console.log('✅ รูปพร้อมพร้อม GPS (ไม่มี address) ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+                    console.log('✅ รูปพร้อม GPS (ไม่มี address) ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
                     fvDoCache();
                 });
         } else {
-            // ไม่มี GPS เลย
             fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, '', '', '');
             fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
             console.log('⚠️ ไม่มี GPS — ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
@@ -593,33 +628,31 @@ function fvCapture() {
         }
     }
 
-    if (navigator.geolocation) {
-        // enableHighAccuracy:false → ใช้ network location แทน GPS จริง (เร็วกว่า ไม่ต้อง signal)
-        // timeout 15 วิ → มือถือบางรุ่นช้า
-        var geoOptions = { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 };
-
-        console.log('📍 กำลังขอ GPS...');
-        var cs2 = document.getElementById('fvCompactStatus');
-        if (cs2) cs2.textContent = '📍 กำลังขอพิกัด GPS...';
-
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                var lat = pos.coords.latitude.toFixed(6);
-                var lng = pos.coords.longitude.toFixed(6);
-                console.log('✅ GPS ได้:', lat, lng, 'accuracy:', pos.coords.accuracy, 'm');
-                fvFinalizeAndCache(lat, lng);
-            },
-            function(err) {
-                // code 1=PERMISSION_DENIED, 2=UNAVAILABLE, 3=TIMEOUT
-                console.warn('⚠️ GPS error code:', err.code, '—', err.message);
+    // ── ✅ ใช้พิกัดที่ preload ไว้ตอน page load (หลีกเลี่ยง Chrome block cross-origin iframe) ──
+    function fvProceedWithCachedGps() {
+        if (fvCachedLat && fvCachedLng) {
+            console.log('✅ ใช้ GPS cache:', fvCachedLat, fvCachedLng);
+            fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+        } else {
+            // cache ยังไม่มี — ลองขอใหม่อีกครั้ง (กรณี preload ยังไม่เสร็จ)
+            if (navigator.geolocation && !fvGpsReady) {
+                console.log('📍 GPS preload ยังไม่เสร็จ รอ...');
+                var waitGps = setInterval(function() {
+                    if (fvGpsReady) {
+                        clearInterval(waitGps);
+                        fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+                    }
+                }, 300);
+                // timeout 16 วิ
+                setTimeout(function() { clearInterval(waitGps); fvFinalizeAndCache('', ''); }, 16000);
+            } else {
+                console.warn('⚠️ ไม่มี GPS cache — ดำเนินการต่อโดยไม่มีพิกัด');
                 fvFinalizeAndCache('', '');
-            },
-            geoOptions
-        );
-    } else {
-        console.warn('⚠️ Browser ไม่รองรับ Geolocation');
-        fvFinalizeAndCache('', '');
+            }
+        }
     }
+
+    fvProceedWithCachedGps();
 }
 
 /* ── ถ่ายใหม่ ── */
