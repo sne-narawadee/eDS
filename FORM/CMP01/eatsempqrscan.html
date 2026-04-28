@@ -538,13 +538,20 @@ function fvCapture() {
     var padding  = Math.round(fontSize * 0.5);
     var barH     = fontSize + padding * 2;
 
-    // ── แถบบนสุด: Timestamp ──
-    ctx.fillStyle    = 'rgba(0,0,0,0.60)';
-    ctx.fillRect(0, 0, canvas.width, barH);
-    ctx.font         = 'bold ' + fontSize + 'px monospace';
-    ctx.fillStyle    = '#ffffff';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('⏱ ' + stamp, padding, barH / 2);
+    // ── Timestamp บนซ้าย: ไม่มีแถบ สีแดง + shadow ──
+    var tsFontSize = Math.max(20, Math.round(canvas.width * 0.055)); // ใหญ่ขึ้น
+    ctx.font         = 'bold ' + tsFontSize + 'px monospace';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor   = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur    = 6;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle    = '#ff2222';
+    ctx.fillText('⏱ ' + stamp, padding, padding);
+    ctx.shadowColor   = 'transparent';
+    ctx.shadowBlur    = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
     // ── หยุดกล้อง + แสดง preview ──
     fvStopStream();
@@ -568,7 +575,19 @@ function fvCapture() {
             fetch(geocodeUrl, { headers: { 'Accept-Language': 'th' } })
                 .then(function(r) { return r.json(); })
                 .then(function(geo) {
-                    var addr = geo.display_name || '';
+                    // ── สร้าง address จาก components เริ่มต้นจากเลขที่/ถนน ──
+                    var a = geo.address || {};
+                    var parts = [];
+                    if (a.house_number) parts.push(a.house_number);
+                    if (a.road)         parts.push(a.road);
+                    if (a.suburb || a.village || a.hamlet)
+                        parts.push(a.suburb || a.village || a.hamlet);
+                    if (a.city_district || a.town || a.county)
+                        parts.push(a.city_district || a.town || a.county);
+                    if (a.city || a.state_district)
+                        parts.push(a.city || a.state_district);
+                    // fallback ถ้า component ว่างหมด
+                    var addr = parts.length > 0 ? parts.join(' ') : (geo.display_name || '');
                     console.log('📍 Address:', addr);
                     fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, addr);
                     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
