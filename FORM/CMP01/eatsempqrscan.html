@@ -409,7 +409,28 @@ function fvOpenCamera() {
         });
 }
 
-/* ── ถ่ายภาพ + timestamp ── */
+
+/* =================== วาดแถบ GPS ด้านล่างรูป Call into function fvCapture() ============== */
+function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng) {
+    var gpsText = (lat && lng)
+        ? '📍 ' + lat + ', ' + lng
+        : '📍 GPS: ไม่สามารถระบุตำแหน่งได้';
+
+    // แถบพื้นหลัง
+    ctx.fillStyle = 'rgba(0,80,0,0.65)';
+    ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+
+    // ข้อความ GPS
+    ctx.font         = 'bold ' + fontSize + 'px monospace';
+    ctx.fillStyle    = '#ffffff';
+    ctx.textBaseline = 'middle';
+
+    // ตัดข้อความถ้ายาวเกิน
+    var maxWidth = canvas.width - padding * 2;
+    ctx.fillText(gpsText, padding, canvas.height - barH / 2, maxWidth);
+}
+
+/* ======================== ถ่ายภาพ + timestamp + GPS ================== */
 function fvCapture() {
     var video  = document.getElementById('fvVideo');
     var canvas = document.getElementById('fvCanvas');
@@ -425,8 +446,8 @@ function fvCapture() {
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
-
-    // timestamp overlay
+    
+    //======== timestamp + GPS overlay============================================
     var now = new Date();
     var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
     var stamp = pad(now.getDate()) + '/' +
@@ -435,21 +456,57 @@ function fvCapture() {
                 pad(now.getHours()) + ':' +
                 pad(now.getMinutes()) + ':' +
                 pad(now.getSeconds());
-    var fontSize = Math.max(16, Math.round(canvas.width * 0.035));
+
+    var fontSize = Math.max(14, Math.round(canvas.width * 0.032));
     var padding  = Math.round(fontSize * 0.5);
     var barH     = fontSize + padding * 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.52)';
-    
-    // ✅ ใหม่ — วาด timestamp บนสุด
+
+    // ── แถบบนสุด: Timestamp ──
+    ctx.fillStyle = 'rgba(0,0,0,0.60)';
     ctx.fillRect(0, 0, canvas.width, barH);
-    ctx.font      = 'bold ' + fontSize + 'px monospace';
-    ctx.fillStyle = '#ffffff';
+    ctx.font         = 'bold ' + fontSize + 'px monospace';
+    ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
     ctx.fillText('⏱ ' + stamp, padding, barH / 2);
 
+    // ── แถบล่าง: GPS ──
+    // ดึง GPS จาก iframe ถ้ามี หรือจาก navigator
+    var gpsLat  = '';
+    var gpsLng  = '';
+    var gpsAddr = '';
+
+    // ลอง navigator.geolocation (เร็ว — ใช้ค่าที่ cache ไว้แล้ว)
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                // วาด GPS หลังได้ค่า
+                var lat = pos.coords.latitude.toFixed(6);
+                var lng = pos.coords.longitude.toFixed(6);
+                fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng);
+                // บันทึกใหม่พร้อม GPS
+                fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                console.log('✅ รูปพร้อมพร้อม GPS:', lat, lng);
+            },
+            function() {
+                // ถ้าไม่ได้ GPS ก็วาดแถบว่าง
+                fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, '', '');
+                fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                console.log('⚠️ ไม่ได้ GPS — บันทึกแบบไม่มี GPS');
+            },
+            { timeout: 3000, maximumAge: 30000 }
+        );
+    } else {
+        fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, '', '');
+        fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+    }
+
+    // บันทึกไว้ก่อน (ไม่มี GPS) รอ callback มาอัปเดต
     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
     console.log('✅ รูปพร้อมแล้ว ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
 
+
+    //============================================================== end Timestamp + GPS
+   
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
     document.getElementById('fvPreviewArea').classList.add('active');
