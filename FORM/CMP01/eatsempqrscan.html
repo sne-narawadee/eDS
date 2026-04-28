@@ -407,21 +407,47 @@ function fvOpenCamera() {
 }
 
 /* ══════════════════════════════════════
-   วาดแถบ GPS ด้านล่างรูป
+   วาดแถบ GPS + Address ด้านล่างรูป
+   (2 บรรทัด: พิกัด + ที่อยู่)
    ══════════════════════════════════════ */
-function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng) {
-    var gpsText = (lat && lng)
-        ? '📍 ' + lat + ', ' + lng
-        : '📍 GPS: ไม่สามารถระบุตำแหน่งได้';
+function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
 
-    ctx.fillStyle = 'rgba(0,80,0,0.65)';
-    ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+    // ── คำนวณความสูง 2 บรรทัด ──
+    var lineH   = barH;                // ความสูงต่อบรรทัด
+    var totalH  = lineH * 2;          // รวม 2 บรรทัด
+    var barTop  = canvas.height - totalH;
+    var maxW    = canvas.width - padding * 2;
+
+    // ── พื้นหลัง ──
+    ctx.fillStyle = 'rgba(0,70,0,0.68)';
+    ctx.fillRect(0, barTop, canvas.width, totalH);
 
     ctx.font         = 'bold ' + fontSize + 'px monospace';
     ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
-    var maxWidth = canvas.width - padding * 2;
-    ctx.fillText(gpsText, padding, canvas.height - barH / 2, maxWidth);
+
+    // ── บรรทัดที่ 1: พิกัด ──
+    var coordText = (lat && lng)
+        ? '📍 ' + lat + ', ' + lng
+        : '📍 GPS: ไม่สามารถระบุตำแหน่งได้';
+    ctx.fillText(coordText, padding, barTop + lineH / 2, maxW);
+
+    // ── บรรทัดที่ 2: ที่อยู่ (ตัดถ้ายาวเกิน) ──
+    var addrText = address ? address : '';
+    if (addrText) {
+        // วัดความยาวข้อความ ตัดให้พอดี แล้วเพิ่ม ...
+        ctx.font = fontSize + 'px sans-serif';  // ใช้ font เล็กลงนิดสำหรับ address
+        var measured = ctx.measureText(addrText).width;
+        if (measured > maxW) {
+            // ตัดทีละตัวอักษรจนพอดี
+            while (addrText.length > 0 && ctx.measureText(addrText + '...').width > maxW) {
+                addrText = addrText.slice(0, -1);
+            }
+            addrText = addrText + '...';
+        }
+        ctx.fillStyle = '#d1fae5';  // สีเขียวอ่อนให้ต่างจากบรรทัดแรก
+        ctx.fillText(addrText, padding, barTop + lineH + lineH / 2, maxW);
+    }
 }
 
 /* ══════════════════════════════════════
@@ -534,18 +560,35 @@ function fvCapture() {
     var cs = document.getElementById('fvCompactStatus');
     if (cs) cs.textContent = '⏳ กำลังระบุตำแหน่ง GPS...';
 
-    // ── ✅ รอ GPS ก่อน แล้วค่อย cache ──
+    // ── ✅ รอ GPS ก่อน แล้วค่อย reverse geocode แล้วค่อย cache ──
     function fvFinalizeAndCache(lat, lng) {
-        // วาดแถบ GPS ด้านล่าง
-        fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng);
-
-        // บันทึก base64 พร้อม GPS แล้ว
-        fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        console.log('✅ รูปพร้อมพร้อม GPS:', lat || 'N/A', lng || 'N/A',
-                    '— ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
-
-        // cache และ reload iframe
-        fvDoCache();
+        if (lat && lng) {
+            // ── ดึง address จาก Nominatim (reverse geocode) ──
+            var geocodeUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th';
+            fetch(geocodeUrl, { headers: { 'Accept-Language': 'th' } })
+                .then(function(r) { return r.json(); })
+                .then(function(geo) {
+                    var addr = geo.display_name || '';
+                    console.log('📍 Address:', addr);
+                    fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, addr);
+                    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    console.log('✅ รูปพร้อมพร้อม GPS+Address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+                    fvDoCache();
+                })
+                .catch(function() {
+                    // geocode ไม่ได้ — ใช้แค่พิกัด
+                    fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, '');
+                    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    console.log('✅ รูปพร้อมพร้อม GPS (ไม่มี address) ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+                    fvDoCache();
+                });
+        } else {
+            // ไม่มี GPS เลย
+            fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, '', '', '');
+            fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            console.log('⚠️ ไม่มี GPS — ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+            fvDoCache();
+        }
     }
 
     if (navigator.geolocation) {
