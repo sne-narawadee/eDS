@@ -7,252 +7,56 @@
 <title>Employee Time Attendance</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-    font-family: 'Sarabun', Arial, sans-serif;
-    background: #f5f5f5;
-    min-height: 100vh;
-}
-
-.page-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
-
-.fv-panel {
-    background: white;
-    border-bottom: 3px solid #56ab2f;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.fv-title {
-    font-weight: 700;
-    color: #166534;
-    font-size: 14px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.fv-status-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    transition: all 0.3s;
-}
-
+body { font-family:'Sarabun',Arial,sans-serif; background:#f5f5f5; min-height:100vh; }
+.page-wrapper { display:flex; flex-direction:column; min-height:100vh; }
+.fv-panel { background:white; border-bottom:3px solid #56ab2f; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+.fv-title { font-weight:700; color:#166534; font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.fv-status-bar { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; font-weight:600; margin-bottom:10px; transition:all 0.3s; }
 .fv-status-bar.idle    { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; }
 .fv-status-bar.ready   { background:#dcfce7; color:#166534; border:1px solid #86efac; }
 .fv-status-bar.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
 .fv-status-bar.loading { background:#fef9c3; color:#854d0e; border:1px solid #fde68a; }
-
-.fv-camera-area {
-    display: none;
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #000;
-    width: 100%;
-    aspect-ratio: 4/3;
-    max-height: 260px;
-    margin-bottom: 10px;
-}
-.fv-camera-area.active { display: block; }
-
-#fvVideo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transform: scaleX(-1);
-}
-
-.fv-face-guide {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 130px; height: 130px;
-    border: 3px dashed rgba(134,239,172,0.85);
-    border-radius: 50%;
-    pointer-events: none;
-    animation: fv-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes fv-pulse {
-    0%,100% { border-color: rgba(134,239,172,0.85); }
-    50%      { border-color: rgba(74,222,128,1); box-shadow: 0 0 0 8px rgba(134,239,172,0); }
-}
-
-.fv-preview-area {
-    display: none;
-    margin-bottom: 10px;
-}
-.fv-preview-area.active { display: block; }
-
-/* ✅ Compact row หลังถ่ายรูปเสร็จ */
-.fv-compact-row {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    background: #dcfce7;
-    border: 1px solid #86efac;
-    border-radius: 10px;
-    padding: 12px;
-}
-
-.fv-thumb-wrap {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 2px solid #16a34a;
-}
-
-.fv-thumb-stamp {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.55);
-    color: #fff;
-    font-size: 9px;
-    font-weight: 600;
-    text-align: center;
-    padding: 2px 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    z-index: 2;
-}
-
-#fvCanvas {
-    width: 80px;
-    height: 80px;
-    display: block;
-    object-fit: cover;
-}
-
-.fv-compact-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-}
-
-.fv-compact-status {
-    font-size: 13px;
-    font-weight: 700;
-    color: #166534;
-    text-align: center;
-}
-
-.fv-compact-retake {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 4px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.fv-preview-badge { display: none; }
-
-.fv-btn-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.fv-btn {
-    flex: 1;
-    min-width: 100px;
-    padding: 10px 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
+.fv-camera-area { display:none; position:relative; border-radius:10px; overflow:hidden; background:#000; width:100%; aspect-ratio:4/3; max-height:260px; margin-bottom:10px; }
+.fv-camera-area.active { display:block; }
+#fvVideo { width:100%; height:100%; object-fit:cover; display:block; transform:scaleX(-1); }
+.fv-face-guide { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:130px; height:130px; border:3px dashed rgba(134,239,172,0.85); border-radius:50%; pointer-events:none; animation:fv-pulse 1.8s ease-in-out infinite; }
+@keyframes fv-pulse { 0%,100%{border-color:rgba(134,239,172,0.85);} 50%{border-color:rgba(74,222,128,1);box-shadow:0 0 0 8px rgba(134,239,172,0);} }
+.fv-preview-area { display:none; margin-bottom:10px; }
+.fv-preview-area.active { display:block; }
+.fv-compact-row { display:flex; flex-direction:column; align-items:center; gap:10px; background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:12px; }
+.fv-thumb-wrap { position:relative; width:80px; height:80px; border-radius:8px; overflow:hidden; border:2px solid #16a34a; }
+.fv-thumb-stamp { position:absolute; top:0; left:0; right:0; background:rgba(0,0,0,0.55); color:#fff; font-size:9px; font-weight:600; text-align:center; padding:2px 4px; white-space:nowrap; overflow:hidden; z-index:2; }
+#fvCanvas { width:80px; height:80px; display:block; object-fit:cover; }
+.fv-compact-info { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.fv-compact-status { font-size:13px; font-weight:700; color:#166534; text-align:center; }
+.fv-compact-retake { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px; padding:4px 14px; font-size:12px; font-weight:600; cursor:pointer; }
+.fv-preview-badge { display:none; }
+.fv-btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+.fv-btn { flex:1; min-width:100px; padding:10px 12px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
 .fv-btn:disabled { opacity:0.4; cursor:not-allowed; }
-.fv-btn-open    { background: linear-gradient(135deg,#16a34a,#22c55e); color:#fff; }
-.fv-btn-capture { background: linear-gradient(135deg,#0ea5e9,#38bdf8); color:#fff; }
-.fv-btn-retake  { background: #f1f5f9; color:#475569; border:1px solid #cbd5e1; }
-
-.fv-no-upload-notice {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-top: 8px;
-    text-align: center;
-}
-
-.iframe-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-}
-
-iframe {
-    border: none;
-    width: 100%;
-    flex: 1;
-    min-height: calc(100vh - 280px);
-    display: block;
-}
-
-.iframe-block-overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.iframe-block-overlay p {
-    color: white;
-    font-size: 16px;
-    font-weight: 700;
-    text-align: center;
-    padding: 0 20px;
-}
+.fv-btn-open    { background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; }
+.fv-btn-capture { background:linear-gradient(135deg,#0ea5e9,#38bdf8); color:#fff; }
+.fv-btn-retake  { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+.fv-no-upload-notice { font-size:11px; color:#9ca3af; margin-top:8px; text-align:center; }
+.iframe-wrapper { flex:1; display:flex; flex-direction:column; position:relative; }
+iframe { border:none; width:100%; flex:1; min-height:calc(100vh - 280px); display:block; }
+.iframe-block-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+.iframe-block-overlay p { color:white; font-size:16px; font-weight:700; text-align:center; padding:0 20px; }
 </style>
 </head>
 <body>
 <div class="page-wrapper">
 
-    <!-- 📷 Face Verify Panel -->
     <div class="fv-panel" id="fvPanel">
         <div class="fv-title">📷 ยืนยันตัวตนด้วยใบหน้า <span style="color:#e74c3c">*</span></div>
-
         <div class="fv-status-bar idle" id="fvStatusBar">
             <span id="fvStatusIcon">🎥</span>
             <span id="fvStatusText">กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน</span>
         </div>
-
         <div class="fv-camera-area" id="fvCameraArea">
             <video id="fvVideo" autoplay playsinline muted></video>
             <div class="fv-face-guide"></div>
         </div>
-
         <div class="fv-preview-area" id="fvPreviewArea">
             <div class="fv-compact-row">
                 <div class="fv-thumb-wrap">
@@ -265,7 +69,6 @@ iframe {
                 </div>
             </div>
         </div>
-
         <div class="fv-btn-row">
             <button class="fv-btn fv-btn-open"    id="fvBtnOpen">🎥 เปิดกล้อง</button>
             <button class="fv-btn fv-btn-capture" id="fvBtnCapture" disabled>📸 ถ่ายภาพ</button>
@@ -274,352 +77,210 @@ iframe {
         <div class="fv-no-upload-notice">🚫 ระบบไม่อนุญาตให้ Upload รูปภาพ — ถ่ายสดเท่านั้น</div>
     </div>
 
-    <!-- iframe GAS -->
     <div class="iframe-wrapper">
         <div class="iframe-block-overlay" id="iframeBlockOverlay">
             <p>📷 กรุณายืนยันตัวตนด้วยใบหน้าก่อน</p>
-            <p style="font-size:13px; font-weight:400;">กดปุ่ม "เปิดกล้อง" ด้านบน แล้วถ่ายภาพ</p>
+            <p style="font-size:13px;font-weight:400;">กดปุ่ม "เปิดกล้อง" ด้านบน แล้วถ่ายภาพ</p>
         </div>
-        <iframe
-            id="app"
-            allow="geolocation"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade">
-        </iframe>
+        <iframe id="app" allow="geolocation" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
 
 </div>
-
 <script>
 
-/* ══════════════════════════════════════
-   โหลด GAS iframe
-   ══════════════════════════════════════ */
 var fvGasBaseUrl = '';
-
-/* ══════════════════════════════════════
-   📍 Cache พิกัด GPS ไว้ล่วงหน้า
-   ขอทันทีก่อน iframe โหลด เพื่อให้ Chrome
-   แสดง permission popup บน parent page
-   (iframe cross-origin ทำให้ Chrome บล็อก
-   geolocation หาก parent ยังไม่ได้รับ permission)
-   ══════════════════════════════════════ */
-var fvCachedLat = '';
-var fvCachedLng = '';
-var fvGpsReady  = false;  // true = ได้พิกัดแล้ว (หรือ timeout แล้ว)
-
-function fvPreloadGps() {
-    if (!navigator.geolocation) {
-        console.warn('⚠️ Geolocation ไม่รองรับ');
-        fvGpsReady = true;
-        return;
-    }
-    console.log('📍 Pre-loading GPS permission...');
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            fvCachedLat = pos.coords.latitude.toFixed(6);
-            fvCachedLng = pos.coords.longitude.toFixed(6);
-            fvGpsReady  = true;
-            console.log('✅ GPS cached:', fvCachedLat, fvCachedLng, '±' + Math.round(pos.coords.accuracy) + 'm');
-        },
-        function(err) {
-            fvGpsReady = true;
-            console.warn('⚠️ GPS preload error code:', err.code, '—', err.message);
-        },
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
-    );
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    // ── 1) ขอ GPS ก่อน ──
-    fvPreloadGps();
-
-    // ── 2) โหลด iframe ──
     var params = new URLSearchParams(window.location.search);
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
-
     var query = [];
     var page          = params.get('page');
     var empCode       = params.get('empCode');
     var spreadsheetId = params.get('spreadsheetId');
     var sheetName     = params.get('sheetName');
-
     if (page)          query.push('page='          + encodeURIComponent(page));
     if (empCode)       query.push('empCode='       + encodeURIComponent(empCode));
     if (spreadsheetId) query.push('spreadsheetId=' + encodeURIComponent(spreadsheetId));
     if (sheetName)     query.push('sheetName='     + encodeURIComponent(sheetName));
-
     var finalUrl = GAS_URL + (query.length ? '?' + query.join('&') : '');
     console.log('Load GAS:', finalUrl);
     document.getElementById('app').src = finalUrl;
     fvGasBaseUrl = finalUrl;
-
     fvUpdateOverlay();
 });
 
-/* ══════════════════════════════════════
-   📷 Face Verification — ตัวแปร global
-   ══════════════════════════════════════ */
 var fvStream   = null;
 var fvVerified = false;
 var fvDataUrl  = '';
 
-/* ── helper ── */
 function fvSetStatus(type, icon, text) {
     var bar = document.getElementById('fvStatusBar');
     bar.className = 'fv-status-bar ' + type;
     document.getElementById('fvStatusIcon').textContent = icon;
     document.getElementById('fvStatusText').textContent = text;
 }
-
 function fvStopStream() {
-    if (fvStream) {
-        fvStream.getTracks().forEach(function(t) { t.stop(); });
-        fvStream = null;
-    }
+    if (fvStream) { fvStream.getTracks().forEach(function(t){t.stop();}); fvStream=null; }
 }
-
 function fvUpdateOverlay() {
-    var overlay = document.getElementById('iframeBlockOverlay');
-    if (!overlay) return;
-    overlay.style.display = fvVerified ? 'none' : 'flex';
+    var o = document.getElementById('iframeBlockOverlay');
+    if (o) o.style.display = fvVerified ? 'none' : 'flex';
 }
 
-/* ── เปิดกล้อง ── */
 function fvOpenCamera() {
-    fvSetStatus('loading', '⏳', 'กำลังเปิดกล้อง...');
-
+    fvSetStatus('loading','⏳','กำลังเปิดกล้อง...');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        fvSetStatus('error', '❌', 'Browser ไม่รองรับกล้อง กรุณาใช้ Chrome/Safari');
-        return;
+        fvSetStatus('error','❌','Browser ไม่รองรับกล้อง กรุณาใช้ Chrome/Safari'); return;
     }
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+    navigator.mediaDevices.getUserMedia({ video:{facingMode:'user'}, audio:false })
         .then(function(stream) {
             fvStream = stream;
-            var video = document.getElementById('fvVideo');
-            video.srcObject = stream;
+            document.getElementById('fvVideo').srcObject = stream;
             document.getElementById('fvCameraArea').classList.add('active');
             document.getElementById('fvPreviewArea').classList.remove('active');
             document.getElementById('fvBtnOpen').disabled    = true;
             document.getElementById('fvBtnCapture').disabled = false;
             document.getElementById('fvBtnRetake').style.display = 'none';
-            fvSetStatus('loading', '📷', 'กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
-            fvVerified = false;
-            fvDataUrl  = '';
+            fvSetStatus('loading','📷','กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
+            fvVerified = false; fvDataUrl = '';
         })
         .catch(function(err) {
-            console.error('Camera error:', err.name, err.message);
+            console.error('Camera error:',err.name,err.message);
             var msg;
-            if (err.name === 'NotAllowedError') {
-                msg = 'ไม่ได้รับอนุญาตใช้กล้อง — กรุณากด Allow ที่ popup หรือใน Site Settings';
-            } else if (err.name === 'NotFoundError') {
-                msg = 'ไม่พบกล้องในอุปกรณ์นี้ — กรุณาใช้มือถือหรือเชื่อมต่อ Webcam';
-            } else if (err.name === 'NotReadableError') {
-                msg = 'กล้องถูกใช้งานโดย app อื่นอยู่ — กรุณาปิด app อื่นก่อน';
-            } else if (err.name === 'OverconstrainedError') {
-                fvSetStatus('loading', '⏳', 'กำลังลองเปิดกล้องแบบสำรอง...');
-                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                    .then(function(stream) {
-                        fvStream = stream;
-                        document.getElementById('fvVideo').srcObject = stream;
+            if      (err.name==='NotAllowedError')  msg='ไม่ได้รับอนุญาตใช้กล้อง — กรุณากด Allow ที่ popup หรือใน Site Settings';
+            else if (err.name==='NotFoundError')    msg='ไม่พบกล้องในอุปกรณ์นี้ — กรุณาใช้มือถือหรือเชื่อมต่อ Webcam';
+            else if (err.name==='NotReadableError') msg='กล้องถูกใช้งานโดย app อื่นอยู่ — กรุณาปิด app อื่นก่อน';
+            else if (err.name==='OverconstrainedError') {
+                fvSetStatus('loading','⏳','กำลังลองเปิดกล้องแบบสำรอง...');
+                navigator.mediaDevices.getUserMedia({video:true,audio:false})
+                    .then(function(s){
+                        fvStream=s; document.getElementById('fvVideo').srcObject=s;
                         document.getElementById('fvCameraArea').classList.add('active');
                         document.getElementById('fvPreviewArea').classList.remove('active');
-                        document.getElementById('fvBtnOpen').disabled    = true;
-                        document.getElementById('fvBtnCapture').disabled = false;
-                        document.getElementById('fvBtnRetake').style.display = 'none';
-                        fvSetStatus('loading', '📷', 'กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
-                        fvVerified = false;
+                        document.getElementById('fvBtnOpen').disabled=true;
+                        document.getElementById('fvBtnCapture').disabled=false;
+                        document.getElementById('fvBtnRetake').style.display='none';
+                        fvSetStatus('loading','📷','กล้องพร้อมแล้ว — จัดหน้าให้อยู่ในวงกลม แล้วกด "ถ่ายภาพ"');
+                        fvVerified=false;
                     })
-                    .catch(function(err2) {
-                        fvSetStatus('error', '❌', 'ไม่สามารถเปิดกล้องได้: ' + err2.message);
-                        document.getElementById('fvBtnOpen').disabled = false;
-                    });
+                    .catch(function(e2){ fvSetStatus('error','❌','ไม่สามารถเปิดกล้องได้: '+e2.message); document.getElementById('fvBtnOpen').disabled=false; });
                 return;
-            } else {
-                msg = 'ไม่สามารถเปิดกล้องได้: ' + err.name + ' — ' + err.message;
-            }
-            fvSetStatus('error', '❌', msg);
-            document.getElementById('fvBtnOpen').disabled = false;
+            } else msg='ไม่สามารถเปิดกล้องได้: '+err.name+' — '+err.message;
+            fvSetStatus('error','❌',msg);
+            document.getElementById('fvBtnOpen').disabled=false;
         });
 }
 
-/* ══════════════════════════════════════
-   วาดแถบ GPS + Address ด้านล่างรูป
-   (2 บรรทัด: พิกัด + ที่อยู่)
-   ══════════════════════════════════════ */
+/* ══ วาดแถบ GPS + Address ด้านล่างรูป (2 บรรทัด) ══ */
 function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
+    var lineH  = barH;
+    var totalH = lineH * 2;
+    var barTop = canvas.height - totalH;
+    var maxW   = canvas.width - padding * 2;
 
-    // ── คำนวณความสูง 2 บรรทัด ──
-    var lineH   = barH;                // ความสูงต่อบรรทัด
-    var totalH  = lineH * 2;          // รวม 2 บรรทัด
-    var barTop  = canvas.height - totalH;
-    var maxW    = canvas.width - padding * 2;
-
-    // ── พื้นหลัง ──
     ctx.fillStyle = 'rgba(0,70,0,0.68)';
     ctx.fillRect(0, barTop, canvas.width, totalH);
 
+    // บรรทัด 1: พิกัด
     ctx.font         = 'bold ' + fontSize + 'px monospace';
     ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
+    var coordText = (lat && lng) ? '📍 '+lat+', '+lng : '📍 GPS: ไม่สามารถระบุตำแหน่งได้';
+    ctx.fillText(coordText, padding, barTop + lineH/2, maxW);
 
-    // ── บรรทัดที่ 1: พิกัด ──
-    var coordText = (lat && lng)
-        ? '📍 ' + lat + ', ' + lng
-        : '📍 GPS: ไม่สามารถระบุตำแหน่งได้';
-    ctx.fillText(coordText, padding, barTop + lineH / 2, maxW);
-
-    // ── บรรทัดที่ 2: ที่อยู่ (ตัดถ้ายาวเกิน) ──
-    var addrText = address ? address : '';
-    if (addrText) {
-        // วัดความยาวข้อความ ตัดให้พอดี แล้วเพิ่ม ...
-        ctx.font = fontSize + 'px sans-serif';  // ใช้ font เล็กลงนิดสำหรับ address
-        var measured = ctx.measureText(addrText).width;
-        if (measured > maxW) {
-            // ตัดทีละตัวอักษรจนพอดี
-            while (addrText.length > 0 && ctx.measureText(addrText + '...').width > maxW) {
-                addrText = addrText.slice(0, -1);
-            }
-            addrText = addrText + '...';
-        }
-        ctx.fillStyle = '#d1fae5';  // สีเขียวอ่อนให้ต่างจากบรรทัดแรก
-        ctx.fillText(addrText, padding, barTop + lineH + lineH / 2, maxW);
+    // บรรทัด 2: ที่อยู่ ตัด ... ถ้ายาวเกิน
+    if (address) {
+        var addrText = address;
+        ctx.font = fontSize + 'px sans-serif';
+        while (addrText.length > 0 && ctx.measureText(addrText+'...').width > maxW)
+            addrText = addrText.slice(0,-1);
+        if (addrText.length < address.length) addrText += '...';
+        ctx.fillStyle = '#d1fae5';
+        ctx.fillText(addrText, padding, barTop + lineH + lineH/2, maxW);
     }
 }
 
-/* ══════════════════════════════════════
-   Cache รูปไป GAS แล้วส่ง fvKey ผ่าน postMessage
-   (ไม่ reload iframe — หลีกเลี่ยง race condition)
-   ══════════════════════════════════════ */
-function fvDoCache(retryCount) {
-    retryCount = retryCount || 0;
-    var MAX_RETRY = 3;
+/* ══ Cache รูปไป GAS แล้ว reload iframe ══ */
+function fvDoCache() {
     var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
-
-    // Guard: ถ้า fvDataUrl ว่าง อย่าส่ง
-    if (!fvDataUrl || fvDataUrl.length < 100) {
-        console.error('❌ fvDataUrl ว่าง — ยกเลิก cache');
-        fvSetStatus('error', '❌', 'เกิดข้อผิดพลาด: ไม่มีข้อมูลภาพ กรุณาถ่ายใหม่');
-        var cs0 = document.getElementById('fvCompactStatus');
-        if (cs0) cs0.textContent = '❌ ไม่มีภาพ กรุณาถ่ายใหม่';
-        return;
-    }
-
-    var attempt = retryCount + 1;
-    console.log('📦 Cache attempt ' + attempt + '/' + MAX_RETRY + ' — ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
-
-    // แสดง loading ทุก attempt (รวม attempt แรก)
-    var statusText = retryCount === 0
-        ? 'กำลังบันทึกภาพยืนยันตัวตน...'
-        : 'กำลังบันทึก... (ลองครั้งที่ ' + attempt + ')';
-    fvSetStatus('loading', '⏳', statusText);
-    var csLoading = document.getElementById('fvCompactStatus');
-    if (csLoading) csLoading.textContent = '⏳ ' + statusText;
-
     fetch(GAS_EXEC_URL, {
-        method  : 'POST',
-        body    : JSON.stringify({ action: 'cacheFaceUrl', imageData: fvDataUrl }),
-        redirect: 'follow'
+        method:'POST',
+        body: JSON.stringify({ action:'cacheFaceUrl', imageData:fvDataUrl }),
+        redirect:'follow'
     })
-    .then(function(res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.text();
-    })
-    .then(function(text) {
-        console.log('📦 Cache response:', text);
-        var result;
-        try { result = JSON.parse(text); } catch(e) { throw new Error('Parse error: ' + text.slice(0, 80)); }
-
-        if (result.status === 'success' && result.cacheKey) {
-            console.log('✅ Cache key:', result.cacheKey);
-
-            // ✅ ส่ง fvKey ผ่าน postMessage ไปยัง iframe โดยตรง
-            //    ไม่ reload iframe — ป้องกัน race condition และระบบช้า
-            var iframeEl = document.getElementById('app');
-            if (iframeEl && iframeEl.contentWindow) {
-                iframeEl.contentWindow.postMessage(
-                    { type: 'fvCacheKey', fvKey: result.cacheKey },
-                    '*'
-                );
-                console.log('📨 postMessage fvKey ไปยัง iframe แล้ว:', result.cacheKey);
+    .then(function(res){return res.text();})
+    .then(function(text){
+        console.log('📦 Cache response:',text);
+        try {
+            var result = JSON.parse(text);
+            if (result.status==='success' && result.cacheKey) {
+                var baseUrl = fvGasBaseUrl.replace(/[?&]fvKey=[^&]*/g,'').replace(/&&/g,'&').replace(/[?&]$/,'');
+                var sep = baseUrl.indexOf('?')>=0 ? '&' : '?';
+                document.getElementById('app').src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
+                console.log('🔄 Reload iframe with key:',result.cacheKey);
             }
-
-            fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
-            var cs = document.getElementById('fvCompactStatus');
-            if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
-            fvUpdateOverlay();
-
-        } else {
-            throw new Error('GAS status: ' + (result.status || 'unknown'));
-        }
+        } catch(e){ console.error('Parse error:',e,text); }
+        fvSetStatus('ready','✅','ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+        var cs = document.getElementById('fvCompactStatus');
+        if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
+        fvUpdateOverlay();
     })
-    .catch(function(err) {
-        console.error('❌ Cache error (attempt ' + attempt + '):', err.message || err);
-
-        if (retryCount < MAX_RETRY - 1) {
-            var delay = Math.pow(2, retryCount + 1) * 1000;
-            console.log('🔁 Retry ใน ' + (delay/1000) + ' วิ...');
-            fvSetStatus('loading', '⏳', 'กำลังลองบันทึกใหม่ (' + (delay/1000) + ' วิ)...');
-            setTimeout(function() { fvDoCache(retryCount + 1); }, delay);
-        } else {
-            console.error('❌ Cache ล้มเหลวหลังจาก ' + MAX_RETRY + ' ครั้ง:', err.message || err);
-            fvSetStatus('error', '❌', 'บันทึกภาพไม่สำเร็จ กรุณากดถ่ายใหม่');
-            var cs2 = document.getElementById('fvCompactStatus');
-            if (cs2) cs2.textContent = '❌ บันทึกไม่สำเร็จ กรุณาถ่ายใหม่';
-            // ไม่เรียก fvUpdateOverlay() → iframe ยังถูกล็อคอยู่ ป้องกันกรอกโดยไม่มีรูป
-        }
+    .catch(function(err){
+        console.error('❌ Cache error:',err);
+        fvSetStatus('ready','✅','ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+        var cs = document.getElementById('fvCompactStatus');
+        if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
+        fvUpdateOverlay();
     });
 }
+
+/* ══ ถ่ายภาพ + timestamp + GPS ══ */
 function fvCapture() {
     var video  = document.getElementById('fvVideo');
     var canvas = document.getElementById('fvCanvas');
-    if (!video.videoWidth) {
-        fvSetStatus('error', '⚠️', 'กล้องยังไม่พร้อม รอสักครู่แล้วลองใหม่');
-        return;
-    }
+    if (!video.videoWidth) { fvSetStatus('error','⚠️','กล้องยังไม่พร้อม รอสักครู่แล้วลองใหม่'); return; }
 
-    // ── กำหนดขนาด canvas ตาม video ──
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
-
     var ctx = canvas.getContext('2d');
 
-    // ── วาดภาพ (mirror) ──
+    // วาดภาพ mirror
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // ── คำนวณขนาด font/bar ──
-    var now      = new Date();
-    var pad      = function(n) { return n < 10 ? '0' + n : '' + n; };
-    var stamp    = pad(now.getDate()) + '/' +
-                   pad(now.getMonth() + 1) + '/' +
-                   now.getFullYear() + '  ' +
-                   pad(now.getHours()) + ':' +
-                   pad(now.getMinutes()) + ':' +
-                   pad(now.getSeconds());
-    var fontSize    = Math.max(14, Math.round(canvas.width * 0.032));
-    var padding     = Math.round(fontSize * 0.5);
-    var barH        = fontSize + padding * 2;
+    // stamp text
+    var now   = new Date();
+    var pad   = function(n){ return n<10?'0'+n:''+n; };
+    var stamp = pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()
+                +'  '+pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
 
-    // ── Timestamp bar (ใหญ่กว่า ไม่หนา) ──
-    var tsFontSize  = Math.max(18, Math.round(canvas.width * 0.048));
-    var tsBarH      = tsFontSize + Math.round(tsFontSize * 0.5) * 2;
+    // ── Timestamp: ใหญ่ขึ้น ไม่ bold bar โปร่งแสงมาก (opacity 0.25) ──
+    var tsFontSize = Math.max(20, Math.round(canvas.width * 0.050));
+    var tsPadding  = Math.round(tsFontSize * 0.35);
+    var tsBarH     = tsFontSize + tsPadding * 2;
 
-    // ── GPS bar ใช้ fontSize/barH เดิม (เล็กกว่า เหมาะกับ 2 บรรทัด) ──
-    var gpsFontSize = fontSize;
-    var gpsBarH     = barH;
-    ctx.fillStyle    = 'rgba(0,0,0,0.30)';
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';          // ← โปร่งแสงมาก
     ctx.fillRect(0, 0, canvas.width, tsBarH);
-    ctx.font         = tsFontSize + 'px monospace';
+
+    ctx.font         = tsFontSize + 'px monospace'; // ← ไม่ bold
     ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
-    ctx.fillText('⏱ ' + stamp, padding, tsBarH / 2);
+    ctx.shadowColor   = 'rgba(0,0,0,0.7)';
+    ctx.shadowBlur    = 5;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
+    ctx.fillText('⏱ ' + stamp, tsPadding, tsBarH / 2);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
-    // ── หยุดกล้อง + แสดง preview ──
+    // GPS bar sizing
+    var gpsFontSize = Math.max(13, Math.round(canvas.width * 0.030));
+    var gpsPadding  = Math.round(gpsFontSize * 0.5);
+    var gpsBarH     = gpsFontSize + gpsPadding * 2;
+
+    // หยุดกล้อง + แสดง preview
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
     document.getElementById('fvPreviewArea').classList.add('active');
@@ -629,107 +290,74 @@ function fvCapture() {
     document.getElementById('fvBtnRetake').style.display = 'none';
     fvVerified = true;
 
-    fvSetStatus('loading', '⏳', 'กำลังระบุตำแหน่ง GPS...');
+    fvSetStatus('loading','⏳','กำลังระบุตำแหน่ง GPS...');
     var cs = document.getElementById('fvCompactStatus');
     if (cs) cs.textContent = '⏳ กำลังระบุตำแหน่ง GPS...';
 
-    // ── reverse geocode + วาด bar + cache ──
+    // รอ GPS → geocode → วาด → cache
     function fvFinalizeAndCache(lat, lng) {
-        var useLat = (lat && lat !== '') ? lat : fvCachedLat;
-        var useLng = (lng && lng !== '') ? lng : fvCachedLng;
-
-        function doDrawAndCache(addr) {
-            fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, addr || '');
-            fvDataUrl = canvas.toDataURL('image/jpeg', 0.60);  // ลด quality ป้องกัน GAS timeout (เดิม 0.82)
-            console.log('✅ รูปพร้อม ขนาด:', Math.round(fvDataUrl.length/1024), 'KB', addr ? '(มี address)' : '(ไม่มี address)');
-            fvDoCache();
-        }
-
-        if (useLat && useLng) {
-            // รอ Nominatim แต่ไม่เกิน 4 วิ — cache ครั้งเดียว
-            var done    = false;
-            var timer   = setTimeout(function() {
-                if (done) return;
-                done = true;
-                console.warn('⚠️ Nominatim timeout — cache โดยไม่มี address');
-                doDrawAndCache('');
-            }, 4000);
-
-            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th',
-                  { headers: { 'Accept-Language': 'th' } })
-                .then(function(r) { return r.json(); })
+        if (lat && lng) {
+            var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&accept-language=th';
+            fetch(url, { headers:{'Accept-Language':'th'} })
+                .then(function(r){ return r.json(); })
                 .then(function(geo) {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    doDrawAndCache(geo.display_name || '');
+                    var a = geo.address || {};
+                    var parts = [];
+                    if (a.house_number)                        parts.push(a.house_number);
+                    if (a.road)                                parts.push(a.road);
+                    if (a.suburb||a.village||a.hamlet)         parts.push(a.suburb||a.village||a.hamlet);
+                    if (a.city_district||a.town||a.county)     parts.push(a.city_district||a.town||a.county);
+                    if (a.city||a.state_district)              parts.push(a.city||a.state_district);
+                    var addr = parts.length>0 ? parts.join(' ') : (geo.display_name||'');
+                    console.log('📍 Address:',addr);
+                    fvDrawGpsBar(canvas, ctx, gpsFontSize, gpsPadding, gpsBarH, lat, lng, addr);
+                    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    console.log('✅ รูปพร้อม GPS+Address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+                    fvDoCache();
                 })
-                .catch(function() {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    doDrawAndCache('');
+                .catch(function(){
+                    fvDrawGpsBar(canvas, ctx, gpsFontSize, gpsPadding, gpsBarH, lat, lng, '');
+                    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    fvDoCache();
                 });
         } else {
-            doDrawAndCache('');
+            fvDrawGpsBar(canvas, ctx, gpsFontSize, gpsPadding, gpsBarH, '', '', '');
+            fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            fvDoCache();
         }
     }
 
-    // ── ✅ ใช้พิกัดที่ preload ไว้ตอน page load (หลีกเลี่ยง Chrome block cross-origin iframe) ──
-    function fvProceedWithCachedGps() {
-        if (fvCachedLat && fvCachedLng) {
-            console.log('✅ ใช้ GPS cache:', fvCachedLat, fvCachedLng);
-            fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-        } else {
-            // cache ยังไม่มี — ลองขอใหม่อีกครั้ง (กรณี preload ยังไม่เสร็จ)
-            if (navigator.geolocation && !fvGpsReady) {
-                console.log('📍 GPS preload ยังไม่เสร็จ รอ...');
-                var waitGps = setInterval(function() {
-                    if (fvGpsReady) {
-                        clearInterval(waitGps);
-                        fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-                    }
-                }, 300);
-                // timeout 16 วิ
-                setTimeout(function() { clearInterval(waitGps); fvFinalizeAndCache('', ''); }, 16000);
-            } else {
-                console.warn('⚠️ ไม่มี GPS cache — ดำเนินการต่อโดยไม่มีพิกัด');
-                fvFinalizeAndCache('', '');
-            }
-        }
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos){ fvFinalizeAndCache(pos.coords.latitude.toFixed(6), pos.coords.longitude.toFixed(6)); },
+            function(err){ console.warn('⚠️ GPS:',err.message); fvFinalizeAndCache('',''); },
+            { timeout:5000, maximumAge:30000 }
+        );
+    } else {
+        fvFinalizeAndCache('','');
     }
-
-    fvProceedWithCachedGps();
 }
 
-/* ── ถ่ายใหม่ ── */
 function fvRetake() {
-    fvVerified = false;
-    fvDataUrl  = '';
+    fvVerified = false; fvDataUrl = '';
     document.getElementById('fvPreviewArea').classList.remove('active');
     document.getElementById('fvBtnRetake').style.display = 'none';
-    fvSetStatus('idle', '🎥', 'กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
+    fvSetStatus('idle','🎥','กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnCapture').disabled = true;
     fvUpdateOverlay();
 }
 
-/* ══════════════════════════════════════
-   ให้ index.html (GAS) ดึง base64 ได้
-   ══════════════════════════════════════ */
 window.fvGetImageData = function() {
-    console.log('📷 fvGetImageData ถูกเรียก — fvVerified:', fvVerified,
-                'ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
+    console.log('📷 fvGetImageData — fvVerified:',fvVerified,'ขนาด:',Math.round(fvDataUrl.length/1024),'KB');
     return fvVerified ? fvDataUrl : '';
 };
 
-/* ── bind ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
 document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
 document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
 document.getElementById('fvBtnRetake2').addEventListener('click', fvRetake);
 window.addEventListener('beforeunload', fvStopStream);
-
 </script>
 </body>
 </html>
