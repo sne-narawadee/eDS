@@ -591,13 +591,17 @@ function fvCapture() {
                    pad(now.getHours()) + ':' +
                    pad(now.getMinutes()) + ':' +
                    pad(now.getSeconds());
-    var fontSize = Math.max(14, Math.round(canvas.width * 0.032));
-    var padding  = Math.round(fontSize * 0.5);
-    var barH     = fontSize + padding * 2;
+    var fontSize    = Math.max(14, Math.round(canvas.width * 0.032));
+    var padding     = Math.round(fontSize * 0.5);
+    var barH        = fontSize + padding * 2;
 
-    // ── แถบบนสุด: Timestamp ──
-    var tsFontSize = Math.max(18, Math.round(canvas.width * 0.048));
-    var tsBarH     = tsFontSize + padding * 2;
+    // ── Timestamp bar (ใหญ่กว่า ไม่หนา) ──
+    var tsFontSize  = Math.max(18, Math.round(canvas.width * 0.048));
+    var tsBarH      = tsFontSize + Math.round(tsFontSize * 0.5) * 2;
+
+    // ── GPS bar ใช้ fontSize/barH เดิม (เล็กกว่า เหมาะกับ 2 บรรทัด) ──
+    var gpsFontSize = fontSize;
+    var gpsBarH     = barH;
     ctx.fillStyle    = 'rgba(0,0,0,0.30)';
     ctx.fillRect(0, 0, canvas.width, tsBarH);
     ctx.font         = tsFontSize + 'px monospace';
@@ -621,26 +625,30 @@ function fvCapture() {
 
     // ── reverse geocode + วาด bar + cache ──
     function fvFinalizeAndCache(lat, lng) {
-        if (lat && lng) {
-            var geocodeUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th';
+        // ── ใช้ cached GPS เสมอ (lat/lng param อาจว่างถ้า race condition) ──
+        var useLat = (lat && lat !== '') ? lat : fvCachedLat;
+        var useLng = (lng && lng !== '') ? lng : fvCachedLng;
+
+        if (useLat && useLng) {
+            var geocodeUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th';
             fetch(geocodeUrl, { headers: { 'Accept-Language': 'th' } })
                 .then(function(r) { return r.json(); })
                 .then(function(geo) {
                     var addr = geo.display_name || '';
                     console.log('📍 Address:', addr);
-                    fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, addr);
+                    fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, addr);
                     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
                     console.log('✅ รูปพร้อม GPS+Address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
                     fvDoCache();
                 })
                 .catch(function() {
-                    fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, '');
+                    fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, '');
                     fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
                     console.log('✅ รูปพร้อม GPS (ไม่มี address) ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
                     fvDoCache();
                 });
         } else {
-            fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, '', '', '');
+            fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, '', '', '');
             fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
             console.log('⚠️ ไม่มี GPS — ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
             fvDoCache();
