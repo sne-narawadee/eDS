@@ -625,46 +625,43 @@ function fvCapture() {
 
     // ── reverse geocode + วาด bar + cache ──
     function fvFinalizeAndCache(lat, lng) {
-        // ── ใช้ cached GPS เสมอ (lat/lng param อาจว่างถ้า race condition) ──
         var useLat = (lat && lat !== '') ? lat : fvCachedLat;
         var useLng = (lng && lng !== '') ? lng : fvCachedLng;
 
-        // ── วาด GPS bar ด้วยพิกัด (ไม่รอ address) แล้ว cache รูปทันที ──
-        // address จะถูกดึงแยกต่างหาก ไม่บล็อก critical path
-        fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, '');
-        fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        console.log('✅ รูปพร้อม (GPS:' + (useLat||'ไม่มี') + ') ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
-        fvDoCache();  // ส่งรูปไป GAS ทันที ไม่รอ geocode
+        function doDrawAndCache(addr) {
+            fvDrawGpsBar(canvas, ctx, gpsFontSize, padding, gpsBarH, useLat, useLng, addr || '');
+            fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            console.log('✅ รูปพร้อม ขนาด:', Math.round(fvDataUrl.length/1024), 'KB', addr ? '(มี address)' : '(ไม่มี address)');
+            fvDoCache();
+        }
 
-        // ── geocode แบบ background (ถ้าได้ address จะ redraw + re-cache) ──
         if (useLat && useLng) {
-            var geocodeUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th';
-            var geocodeTimer = setTimeout(function() {
-                // timeout 5 วิ: ถ้า Nominatim ช้าเกิน ข้ามไปเลย
-                console.warn('⚠️ Nominatim timeout — ใช้รูปที่ไม่มี address');
-                geocodeAborted = true;
-            }, 5000);
-            var geocodeAborted = false;
+            // รอ Nominatim แต่ไม่เกิน 4 วิ — cache ครั้งเดียว
+            var done    = false;
+            var timer   = setTimeout(function() {
+                if (done) return;
+                done = true;
+                console.warn('⚠️ Nominatim timeout — cache โดยไม่มี address');
+                doDrawAndCache('');
+            }, 4000);
 
-            fetch(geocodeUrl, { headers: { 'Accept-Language': 'th' } })
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th',
+                  { headers: { 'Accept-Language': 'th' } })
                 .then(function(r) { return r.json(); })
                 .then(function(geo) {
-                    clearTimeout(geocodeTimer);
-                    if (geocodeAborted) return;
-                    var addr = geo.display_name || '';
-                    if (!addr) return;
-                    console.log('📍 Address ได้ (background):', addr);
-                    // redraw canvas พร้อม address แล้ว re-cache
-                    var ctx2 = canvas.getContext('2d');
-                    fvDrawGpsBar(canvas, ctx2, gpsFontSize, padding, gpsBarH, useLat, useLng, addr);
-                    fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                    console.log('🔄 Re-cache พร้อม address ขนาด:', Math.round(fvDataUrl.length/1024), 'KB');
-                    fvDoCache();
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    doDrawAndCache(geo.display_name || '');
                 })
-                .catch(function(e) {
-                    clearTimeout(geocodeTimer);
-                    console.warn('⚠️ Nominatim error:', e.message || e, '— ใช้รูปที่ไม่มี address');
+                .catch(function() {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    doDrawAndCache('');
                 });
+        } else {
+            doDrawAndCache('');
         }
     }
 
