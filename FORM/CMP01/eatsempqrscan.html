@@ -418,8 +418,8 @@ function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
     var barTop  = canvas.height - totalH;
     var maxW    = canvas.width - padding * 2;
 
-    // ── พื้นหลัง: โปร่งแสงมากขึ้น ──
-    ctx.fillStyle = 'rgba(0,50,0,0.40)';
+    // ── พื้นหลัง ──
+    ctx.fillStyle = 'rgba(0,70,0,0.68)';
     ctx.fillRect(0, barTop, canvas.width, totalH);
 
     ctx.font         = 'bold ' + fontSize + 'px monospace';
@@ -525,7 +525,7 @@ function fvCapture() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // ── คำนวณขนาด font/bar ──
+    // ── คำนวณขนาด font/bar (ใช้สำหรับ GPS bar ด้านล่าง) ──
     var now      = new Date();
     var pad      = function(n) { return n < 10 ? '0' + n : '' + n; };
     var stamp    = pad(now.getDate()) + '/' +
@@ -534,19 +534,20 @@ function fvCapture() {
                    pad(now.getHours()) + ':' +
                    pad(now.getMinutes()) + ':' +
                    pad(now.getSeconds());
-
-    // ── ✅ font ใหญ่ขึ้น (× 1.6) และไม่หนา ──
-    var fontSize = Math.max(20, Math.round(canvas.width * 0.052));
+    var fontSize = Math.max(14, Math.round(canvas.width * 0.032));
     var padding  = Math.round(fontSize * 0.5);
     var barH     = fontSize + padding * 2;
 
-    // ── แถบบนสุด: Timestamp — โปร่งแสงมากขึ้น ──
-    ctx.fillStyle    = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(0, 0, canvas.width, barH);
-    ctx.font         = fontSize + 'px monospace';   // ✅ ไม่ใส่ bold
+    // ── แถบบนสุด: Timestamp ──
+    // font ใหญ่ขึ้น ~40%, ไม่ bold, พื้นหลังโปร่งแสงมากขึ้น
+    var tsFontSize = Math.round(fontSize * 1.4);
+    var tsBarH     = tsFontSize + padding * 2;
+    ctx.fillStyle    = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(0, 0, canvas.width, tsBarH);
+    ctx.font         = tsFontSize + 'px monospace';
     ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
-    ctx.fillText('⏱ ' + stamp, padding, barH / 2);
+    ctx.fillText('⏱ ' + stamp, padding, tsBarH / 2);
 
     // ── หยุดกล้อง + แสดง preview ──
     fvStopStream();
