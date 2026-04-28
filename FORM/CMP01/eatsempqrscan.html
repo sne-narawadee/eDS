@@ -491,57 +491,76 @@ function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
 /* ══════════════════════════════════════
    Cache รูปไป GAS แล้ว reload iframe
    ══════════════════════════════════════ */
-function fvDoCache() {
+function fvDoCache(retryCount) {
+    retryCount = retryCount || 0;
+    var MAX_RETRY = 3;
     var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+
+    // Guard: \u0e16\u0e49\u0e32 fvDataUrl \u0e27\u0e48\u0e32\u0e07 \u0e2d\u0e22\u0e48\u0e32\u0e2a\u0e48\u0e07
+    if (!fvDataUrl || fvDataUrl.length < 100) {
+        console.error('\u274c fvDataUrl \u0e27\u0e48\u0e32\u0e07 \u2014 \u0e22\u0e01\u0e40\u0e25\u0e34\u0e01 cache');
+        fvSetStatus('error', '\u274c', '\u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14: \u0e44\u0e21\u0e48\u0e21\u0e35\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e20\u0e32\u0e1e \u0e01\u0e23\u0e38\u0e13\u0e32\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e21\u0e48');
+        var cs0 = document.getElementById('fvCompactStatus');
+        if (cs0) cs0.textContent = '\u274c \u0e44\u0e21\u0e48\u0e21\u0e35\u0e20\u0e32\u0e1e \u0e01\u0e23\u0e38\u0e13\u0e32\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e21\u0e48';
+        return;
+    }
+
+    var attempt = retryCount + 1;
+    console.log('\ud83d\udce6 Cache attempt ' + attempt + '/' + MAX_RETRY + ' \u2014 \u0e02\u0e19\u0e32\u0e14:', Math.round(fvDataUrl.length/1024), 'KB');
+    if (retryCount > 0) {
+        fvSetStatus('loading', '\u23f3', '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01... (\u0e25\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e17\u0e35\u0e48 ' + attempt + ')');
+    }
 
     fetch(GAS_EXEC_URL, {
         method  : 'POST',
-        body    : JSON.stringify({
-            action   : 'cacheFaceUrl',
-            imageData: fvDataUrl
-        }),
+        body    : JSON.stringify({ action: 'cacheFaceUrl', imageData: fvDataUrl }),
         redirect: 'follow'
     })
-    .then(function(res) { return res.text(); })
+    .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+    })
     .then(function(text) {
-        console.log('📦 Cache response:', text);
-        try {
-            var result = JSON.parse(text);
-            if (result.status === 'success' && result.cacheKey) {
-                console.log('✅ Cache key:', result.cacheKey);
+        console.log('\ud83d\udce6 Cache response:', text);
+        var result;
+        try { result = JSON.parse(text); } catch(e) { throw new Error('Parse error: ' + text.slice(0, 80)); }
 
-                var baseUrl = fvGasBaseUrl
-                                .replace(/[?&]fvKey=[^&]*/g, '')
-                                .replace(/&&/g, '&')
-                                .replace(/[?&]$/, '');
-                var sep    = baseUrl.indexOf('?') >= 0 ? '&' : '?';
-                var newUrl = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
+        if (result.status === 'success' && result.cacheKey) {
+            console.log('\u2705 Cache key:', result.cacheKey);
+            var baseUrl = fvGasBaseUrl
+                            .replace(/[?&]fvKey=[^&]*/g, '')
+                            .replace(/&&/g, '&')
+                            .replace(/[?&]$/, '');
+            var sep    = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+            var newUrl = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
+            console.log('\ud83d\udd04 Reload iframe:', newUrl);
+            document.getElementById('app').src = newUrl;
 
-                console.log('🔄 Reload iframe:', newUrl);
-                document.getElementById('app').src = newUrl;
-            } else {
-                console.warn('⚠️ Cache ไม่สำเร็จ:', text);
-            }
-        } catch(e) {
-            console.error('Parse error:', e, text);
+            fvSetStatus('ready', '\u2705', '\u0e22\u0e37\u0e19\u0e22\u0e31\u0e19\u0e15\u0e31\u0e27\u0e15\u0e19\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u2014 \u0e01\u0e23\u0e2d\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e41\u0e25\u0e49\u0e27\u0e01\u0e14\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e14\u0e49\u0e40\u0e25\u0e22');
+            var cs = document.getElementById('fvCompactStatus');
+            if (cs) cs.textContent = '\u2705 \u0e22\u0e37\u0e19\u0e22\u0e31\u0e19\u0e15\u0e31\u0e27\u0e15\u0e19\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08';
+            fvUpdateOverlay();
+        } else {
+            throw new Error('GAS status: ' + (result.status || 'unknown'));
         }
-        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
-        var cs = document.getElementById('fvCompactStatus');
-        if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
-        fvUpdateOverlay();
     })
     .catch(function(err) {
-        console.error('❌ Cache error:', err);
-        fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
-        var cs = document.getElementById('fvCompactStatus');
-        if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
-        fvUpdateOverlay();
+        console.error('\u274c Cache error (attempt ' + attempt + '):', err.message || err);
+
+        if (retryCount < MAX_RETRY - 1) {
+            var delay = Math.pow(2, retryCount + 1) * 1000;
+            console.log('\ud83d\udd01 Retry \u0e43\u0e19 ' + (delay/1000) + ' \u0e27\u0e34...');
+            fvSetStatus('loading', '\u23f3', '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e25\u0e2d\u0e07\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e43\u0e2b\u0e21\u0e48 (' + (delay/1000) + ' \u0e27\u0e34)...');
+            setTimeout(function() { fvDoCache(retryCount + 1); }, delay);
+        } else {
+            console.error('\u274c Cache \u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27\u0e2b\u0e25\u0e31\u0e07\u0e08\u0e32\u0e01 ' + MAX_RETRY + ' \u0e04\u0e23\u0e31\u0e49\u0e07:', err.message || err);
+            fvSetStatus('error', '\u274c', '\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e20\u0e32\u0e1e\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e14\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e21\u0e48');
+            var cs2 = document.getElementById('fvCompactStatus');
+            if (cs2) cs2.textContent = '\u274c \u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e16\u0e48\u0e32\u0e22\u0e43\u0e2b\u0e21\u0e48';
+            // \u0e44\u0e21\u0e48\u0e40\u0e23\u0e35\u0e22\u0e01 fvUpdateOverlay() \u2192 iframe \u0e22\u0e31\u0e07\u0e16\u0e39\u0e01\u0e25\u0e47\u0e2d\u0e04\u0e2d\u0e22\u0e39\u0e48 \u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19\u0e01\u0e23\u0e2d\u0e01\u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e21\u0e35\u0e23\u0e39\u0e1b
+        }
     });
 }
-
-/* ══════════════════════════════════════
-   ถ่ายภาพ + timestamp + GPS
-   ══════════════════════════════════════ */
 function fvCapture() {
     var video  = document.getElementById('fvVideo');
     var canvas = document.getElementById('fvCanvas');
