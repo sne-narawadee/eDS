@@ -573,24 +573,15 @@ function fvDoCache(retryCount) {
             console.log('Cache key:', result.cacheKey);
 
             // ── ส่ง fvKey ผ่าน postMessage แทนการ reload iframe ──
-            // index.html รอรับ: event.data.type === 'fvCacheKey' && event.data.fvKey
+            // ✅ ใช้ iframe reload + URL param เสมอ (postMessage ถูก GAS Warden บล็อก)
             var iframeEl = document.getElementById('app');
-            try {
-                iframeEl.contentWindow.postMessage(
-                    { type: 'fvCacheKey', fvKey: result.cacheKey },
-                    '*'
-                );
-                console.log('postMessage fvCacheKey sent OK');
-            } catch(pmErr) {
-                // fallback: reload ถ้า postMessage ไม่ได้
-                console.warn('postMessage failed, fallback reload:', pmErr.message);
-                var baseUrl = fvGasBaseUrl
-                                .replace(/[?&]fvKey=[^&]*/g, '')
-                                .replace(/&&/g, '&')
-                                .replace(/[?&]$/, '');
-                var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
-                iframeEl.src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
-            }
+            var baseUrl  = fvGasBaseUrl
+                            .replace(/[?&]fvKey=[^&]*/g, '')
+                            .replace(/&&/g, '&')
+                            .replace(/[?&]$/, '');
+            var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+            iframeEl.src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
+            console.log('✅ iframe reload with fvKey:', result.cacheKey);
 
             fvHideIframeLoading();
             fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
