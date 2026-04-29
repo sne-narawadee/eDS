@@ -261,10 +261,47 @@ iframe {
     color: #475569;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast แจ้งเตือน "พร้อมกรอกข้อมูล" ── */
+.fv-ready-toast {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(22,163,74,0.45);
+    transform: translateY(-100%);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+    text-align: center;
+}
+.fv-ready-toast.show { transform: translateY(0); }
+
+/* ── pulse ring รอบ preview thumbnail ── */
+.fv-thumb-wrap.pulse-ring {
+    animation: thumbPulse 0.6s ease-out 3;
+}
+@keyframes thumbPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(22,163,74,0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(22,163,74,0); }
+    100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); }
+}
 </style>
 </head>
 <body>
 <div class="page-wrapper">
+
+    <!-- ✅ Toast แจ้งเตือนเมื่อฟอร์มพร้อมกรอก -->
+    <div class="fv-ready-toast" id="fvReadyToast">
+        ✅ ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย!
+    </div>
 
     <!-- Face Verify Panel -->
     <div class="fv-panel" id="fvPanel">
@@ -572,22 +609,48 @@ function fvDoCache(retryCount) {
         if (result.status === 'success' && result.cacheKey) {
             console.log('Cache key:', result.cacheKey);
 
-            // ── ส่ง fvKey ผ่าน postMessage แทนการ reload iframe ──
-            // ✅ ใช้ iframe reload + URL param เสมอ (postMessage ถูก GAS Warden บล็อก)
+            // ── ✅ ใช้ iframe reload + URL param (postMessage ถูก GAS Warden บล็อก) ──
+            // ── แต่ตอนนี้รอ onload จริงๆ ก่อนซ่อน overlay (แก้ปัญหา refresh 2 รอบ) ──
             var iframeEl = document.getElementById('app');
             var baseUrl  = fvGasBaseUrl
                             .replace(/[?&]fvKey=[^&]*/g, '')
                             .replace(/&&/g, '&')
                             .replace(/[?&]$/, '');
             var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+
+            // อัปเดต overlay แสดงว่า "กำลังโหลดแบบฟอร์ม" (ยังไม่ซ่อน)
+            fvShowIframeLoading('⏳ กำลังโหลดแบบฟอร์ม... รอสักครู่');
+            var csLoading = document.getElementById('fvCompactStatus');
+            if (csLoading) csLoading.textContent = '⏳ กำลังโหลดแบบฟอร์ม...';
+            fvSetStatus('loading', '⏳', 'ภาพบันทึกแล้ว — กำลังโหลดแบบฟอร์ม รอสักครู่...');
+
+            // ── Timeout 20 วิ: ถ้า onload ไม่ยิง (edge case) ให้ปลดล็อคเอง ──
+            var iframeLoadTimer = setTimeout(function() {
+                console.warn('⚠️ iframe load timeout — unlock form anyway');
+                iframeEl.onload = null;
+                fvHideIframeLoading();
+                fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+                var csT = document.getElementById('fvCompactStatus');
+                if (csT) csT.textContent = '✅ ยืนยันตัวตนสำเร็จ';
+                fvUpdateOverlay();
+                fvShowReadyToast();
+            }, 20000);
+
+            // ── รอ iframe โหลดเสร็จจริงๆ แล้วค่อยซ่อน overlay ──
+            iframeEl.onload = function() {
+                clearTimeout(iframeLoadTimer);
+                iframeEl.onload = null; // ล้าง listener ไม่ให้ยิงซ้ำ
+                console.log('✅ iframe load complete — form ready');
+                fvHideIframeLoading();
+                fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
+                var cs = document.getElementById('fvCompactStatus');
+                if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
+                fvUpdateOverlay();
+                fvShowReadyToast(); // แจ้งเตือน user ว่าพร้อมกรอกได้แล้ว
+            };
+
             iframeEl.src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
             console.log('✅ iframe reload with fvKey:', result.cacheKey);
-
-            fvHideIframeLoading();
-            fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
-            var cs = document.getElementById('fvCompactStatus');
-            if (cs) cs.textContent = '✅ ยืนยันตัวตนสำเร็จ';
-            fvUpdateOverlay();
 
         } else {
             throw new Error('GAS status: ' + (result.status || 'unknown'));
@@ -765,6 +828,29 @@ window.fvGetImageData = function() {
                 'size:', Math.round(fvDataUrl.length/1024), 'KB');
     return fvVerified ? fvDataUrl : '';
 };
+
+/* ══════════════════════════════════════
+   Toast แจ้งเตือน "พร้อมกรอกข้อมูลได้แล้ว"
+   — ปรากฏด้านบน 3 วินาที แล้วหายไปเอง
+   ══════════════════════════════════════ */
+function fvShowReadyToast() {
+    var toast = document.getElementById('fvReadyToast');
+    if (!toast) return;
+    toast.classList.add('show');
+
+    // pulse thumbnail
+    var thumb = document.querySelector('.fv-thumb-wrap');
+    if (thumb) {
+        thumb.classList.remove('pulse-ring');
+        // force reflow
+        void thumb.offsetWidth;
+        thumb.classList.add('pulse-ring');
+    }
+
+    setTimeout(function() {
+        toast.classList.remove('show');
+    }, 3500);
+}
 
 /* ── bind buttons ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
