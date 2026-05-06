@@ -368,6 +368,8 @@ var fvGasBaseUrl  = '';
 var fvStream      = null;
 var fvVerified    = false;
 var fvDataUrl     = '';
+var fvEmpCode     = '';
+var fvEmpName     = '';
 
 /* ══════════════════════════════════════
    GPS: preload ทันทีที่ page load
@@ -415,11 +417,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var query         = [];
     var page          = params.get('page');
     var empCode       = params.get('empCode');
+    var empName       = params.get('empName');
     var spreadsheetId = params.get('spreadsheetId');
     var sheetName     = params.get('sheetName');
 
+    // เก็บไว้ใช้วาดบนรูป
+    fvEmpCode = empCode || '';
+    fvEmpName = empName || '';
+
     if (page)          query.push('page='          + encodeURIComponent(page));
     if (empCode)       query.push('empCode='       + encodeURIComponent(empCode));
+    if (empName)       query.push('empName='       + encodeURIComponent(empName));
     if (spreadsheetId) query.push('spreadsheetId=' + encodeURIComponent(spreadsheetId));
     if (sheetName)     query.push('sheetName='     + encodeURIComponent(sheetName));
 
@@ -724,6 +732,42 @@ function fvCapture() {
     ctx.fillStyle    = '#ffffff';
     ctx.textBaseline = 'middle';
     ctx.fillText('\u23F1 ' + stamp, tsPadding, tsBarH / 2);
+
+    // วาดรหัส + ชื่อพนักงาน เป็น badge สีเขียว มุมบนขวา บนแถบ timestamp
+    if (fvEmpCode || fvEmpName) {
+        var empFontSize = Math.max(13, Math.round(tsFontSize * 0.78));
+        var empText1 = fvEmpCode ? '[' + fvEmpCode + ']' : '';
+        var empText2 = fvEmpName ? fvEmpName : '';
+        var empText  = (empText1 && empText2) ? empText1 + ' ' + empText2
+                     : (empText1 || empText2);
+
+        ctx.font = 'bold ' + empFontSize + 'px sans-serif';
+        var textW    = ctx.measureText(empText).width;
+        var badgePad = Math.round(empFontSize * 0.5);
+        var badgeW   = textW + badgePad * 2;
+        var badgeH   = empFontSize + badgePad;
+        var badgeX   = canvas.width - badgeW - tsPadding;
+        var badgeY   = (tsBarH - badgeH) / 2;
+
+        ctx.fillStyle = 'rgba(22,163,74,0.90)';
+        ctx.beginPath();
+        var bR = Math.round(badgeH * 0.3);
+        ctx.moveTo(badgeX + bR, badgeY);
+        ctx.lineTo(badgeX + badgeW - bR, badgeY);
+        ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + bR);
+        ctx.lineTo(badgeX + badgeW, badgeY + badgeH - bR);
+        ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - bR, badgeY + badgeH);
+        ctx.lineTo(badgeX + bR, badgeY + badgeH);
+        ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - bR);
+        ctx.lineTo(badgeX, badgeY + bR);
+        ctx.quadraticCurveTo(badgeX, badgeY, badgeX + bR, badgeY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle    = '#ffffff';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(empText, badgeX + badgePad, badgeY + badgeH / 2, badgeW - badgePad);
+    }
 
     // ── หยุดกล้อง + แสดง preview ──
     fvStopStream();
