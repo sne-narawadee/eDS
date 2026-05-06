@@ -642,6 +642,21 @@ function fvDoCache(retryCount) {
                 clearTimeout(iframeLoadTimer);
                 iframeEl.onload = null; // ล้าง listener ไม่ให้ยิงซ้ำ
                 console.log('✅ iframe load complete — form ready');
+
+                // ── ✅ ส่ง fvDataUrl (base64 รูปภาพ) ให้ iframe ผ่าน postMessage ──
+                //    เพราะ GAS sandbox บล็อก window.parent cross-origin access
+                if (fvDataUrl && fvDataUrl.length > 100) {
+                    try {
+                        iframeEl.contentWindow.postMessage(
+                            { type: 'fvImageData', imageData: fvDataUrl },
+                            '*'
+                        );
+                        console.log('📤 ส่ง fvImageData ผ่าน postMessage:', Math.round(fvDataUrl.length/1024), 'KB');
+                    } catch(pmErr) {
+                        console.warn('⚠️ postMessage fvImageData ไม่สำเร็จ:', pmErr.message);
+                    }
+                }
+
                 fvHideIframeLoading();
                 fvSetStatus('ready', '✅', 'ยืนยันตัวตนสำเร็จ — กรอกข้อมูลแล้วกดบันทึกได้เลย');
                 var cs = document.getElementById('fvCompactStatus');
