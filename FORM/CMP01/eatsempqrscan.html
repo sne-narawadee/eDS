@@ -665,8 +665,11 @@ function fvDoCache(retryCount) {
                 fvShowReadyToast(); // แจ้งเตือน user ว่าพร้อมกรอกได้แล้ว
             };
 
-            iframeEl.src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey);
-            console.log('✅ iframe reload with fvKey:', result.cacheKey);
+            iframeEl.src = baseUrl + sep + 'fvKey=' + encodeURIComponent(result.cacheKey)
+                         + '&fvTsBarH=' + encodeURIComponent(window._fvTsBarH  || 46)
+                         + '&fvImgW='   + encodeURIComponent(window._fvCanvasW || 640)
+                         + '&fvImgH='   + encodeURIComponent(window._fvCanvasH || 480);
+            console.log('✅ iframe reload with fvKey:', result.cacheKey, 'tsBarH:', window._fvTsBarH, 'size:', window._fvCanvasW + 'x' + window._fvCanvasH);
 
         } else {
             throw new Error('GAS status: ' + (result.status || 'unknown'));
@@ -732,6 +735,11 @@ function fvCapture() {
     var tsPadding   = Math.round(tsFontSize * 0.5);
     var tsBarH      = tsFontSize + tsPadding * 2;
     var gpsPadding  = Math.round(gpsFontSize * 0.5);
+
+    // ── เก็บค่า tsBarH และขนาด canvas ไว้ใช้ใน fvDoCache (ต่าง scope) ──
+    window._fvTsBarH  = tsBarH;
+    window._fvCanvasW = canvas.width;
+    window._fvCanvasH = canvas.height;
 
     // ── แถบ Timestamp ด้านบน: โปร่งแสง ไม่หนา ──
     ctx.fillStyle    = 'rgba(0,0,0,0.30)';
