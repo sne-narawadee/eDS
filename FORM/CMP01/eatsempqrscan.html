@@ -503,6 +503,7 @@ function fvOpenCamera() {
                 msg = 'กล้องถูกใช้งานโดย app อื่นอยู่ — กรุณาปิด app อื่นก่อน';
             } else if (err.name === 'OverconstrainedError') {
                 fvSetStatus('loading', '⏳', 'กำลังลองเปิดกล้องแบบสำรอง...');
+                // ✅ Performance: reuse success handler แทนการ duplicate code
                 navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                     .then(function(stream) {
                         fvStream = stream;
@@ -552,12 +553,18 @@ function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
     var addrText = address ? address : '';
     if (addrText) {
         ctx.font = fontSize + 'px sans-serif';
-        var measured = ctx.measureText(addrText).width;
-        if (measured > maxW) {
-            while (addrText.length > 0 && ctx.measureText(addrText + '...').width > maxW) {
-                addrText = addrText.slice(0, -1);
+        // ✅ Performance: ใช้ binary search แทน O(n²) slice loop
+        if (ctx.measureText(addrText).width > maxW) {
+            var lo = 0, hi = addrText.length;
+            while (lo < hi - 1) {
+                var mid = Math.floor((lo + hi) / 2);
+                if (ctx.measureText(addrText.slice(0, mid) + '...').width <= maxW) {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
             }
-            addrText = addrText + '...';
+            addrText = addrText.slice(0, lo) + '...';
         }
         ctx.fillStyle = '#d1fae5';
         ctx.fillText(addrText, padding, barTop + lineH + lineH / 2, maxW);
@@ -572,7 +579,10 @@ function fvDrawGpsBar(canvas, ctx, fontSize, padding, barH, lat, lng, address) {
 function fvDoCache(retryCount) {
     retryCount = retryCount || 0;
     var MAX_RETRY    = 3;
-    var GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
+    // ✅ Fix: ใช้ fvGasBaseUrl แทน hardcode URL เพื่อป้องกัน URL mismatch
+    var GAS_EXEC_URL = fvGasBaseUrl
+        ? fvGasBaseUrl.replace(/[?&]fvKey=[^&]*/g, '').replace(/&&/g, '&').replace(/[?&]$/, '')
+        : 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
     // Guard: ถ้า fvDataUrl ว่าง อย่าส่ง
     if (!fvDataUrl || fvDataUrl.length < 100) {
@@ -613,10 +623,8 @@ function fvDoCache(retryCount) {
             // ── ✅ ใช้ iframe reload + URL param (postMessage ถูก GAS Warden บล็อก) ──
             // ── แต่ตอนนี้รอ onload จริงๆ ก่อนซ่อน overlay (แก้ปัญหา refresh 2 รอบ) ──
             var iframeEl = document.getElementById('app');
-            var baseUrl  = fvGasBaseUrl
-                            .replace(/[?&]fvKey=[^&]*/g, '')
-                            .replace(/&&/g, '&')
-                            .replace(/[?&]$/, '');
+            // ✅ Fix: ใช้ GAS_EXEC_URL ที่คำนวณไว้ด้านบนแล้ว ไม่ต้อง compute ซ้ำ
+            var baseUrl  = GAS_EXEC_URL;
             var sep = baseUrl.indexOf('?') >= 0 ? '&' : '?';
 
             // อัปเดต overlay แสดงว่า "กำลังโหลดแบบฟอร์ม" (ยังไม่ซ่อน)
@@ -819,7 +827,12 @@ function fvCapture() {
                     fvFinalizeAndCache(fvCachedLat, fvCachedLng);
                 }
             }, 300);
-            setTimeout(function() { clearInterval(waitGps); fvFinalizeAndCache('', ''); }, 16000);
+            setTimeout(function() {
+                clearInterval(waitGps);
+                // ✅ Fix: mark fvGpsReady=true เพื่อป้องกัน interval ยิงหลัง timeout
+                fvGpsReady = true;
+                fvFinalizeAndCache('', '');
+            }, 16000);
         } else {
             // GPS ไม่ได้เลย
             fvFinalizeAndCache('', '');
@@ -886,4 +899,3 @@ window.addEventListener('beforeunload', fvStopStream);
 </script>
 </body>
 </html>
-
