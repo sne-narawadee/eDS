@@ -1,33 +1,27 @@
-<!----- Auto size iframe full screen ----->
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>CRS Report</title>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden; /* ปิดการเลื่อน */
-        }
-        iframe {
-            border: 0; /* ปิดขอบของ iframe */
-            width: 100%;
-            height: 100%;
-            display: block; /* ปิดช่องว่างภายใน iframe */
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRS Report</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+    iframe { border: 0; width: 100%; height: 100%; display: block; }
+  </style>
 </head>
 <body>
-    <iframe
-      id="app"
-      src="https://script.google.com/macros/s/AKfycbyOGJsUTrZyIui-GPtGcPwJH009McZRxnXUIKSiZAcpMeNVvfNEwJXpaco3ufGVSNy-/exec"
-      allow="geolocation"
-      frameborder="0"
-      scrolling="no">
-    </iframe>
+  <iframe id="app" allow="geolocation" frameborder="0" scrolling="no"></iframe>
+
+  <script>
+    // รับ token จาก URL แล้วส่งต่อเข้า Apps Script
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyOGJsUTrZyIui-GPtGcPwJH009McZRxnXUIKSiZAcpMeNVvfNEwJXpaco3ufGVSNy-/exec";
+    const params  = new URLSearchParams(window.location.search);
+    const token   = params.get("token");
+
+    let src = GAS_URL;
+    if (token) src += "?token=" + encodeURIComponent(token);
+
+    document.getElementById("app").src = src;
+  </script>
 </body>
 </html>
