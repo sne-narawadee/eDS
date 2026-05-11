@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <title>CRS Report</title>
     <style>
         html, body {
@@ -23,114 +22,12 @@
     </style>
 </head>
 <body>
-<!------------------------    
     <iframe
       id="app"
       src="https://script.google.com/macros/s/AKfycbyOGJsUTrZyIui-GPtGcPwJH009McZRxnXUIKSiZAcpMeNVvfNEwJXpaco3ufGVSNy-/exec"
-      allow="geolocation; camera; microphone"
+      allow="geolocation"
       frameborder="0"
       scrolling="no">
     </iframe>
-  ------------------------>  
-<!-- ===== MAIN APP ===== -->
-<!-- ลบ iframe ออก แทนด้วย div เปล่าก่อน -->
-<div id="app" style="width:100%;height:100%;overflow:auto;background:#f1f5fb;"></div>
-
-<script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyOGJsUTrZyIui-GPtGcPwJH009McZRxnXUIKSiZAcpMeNVvfNEwJXpaco3ufGVSNy-/exec';
-
-  // ซ่อน splash แล้วแสดง QR scanner ทันที
-  setTimeout(() => {
-    document.getElementById('splash').style.display = 'none';
-    document.getElementById('app').innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;
-                  justify-content:center;min-height:100vh;padding:24px;
-                  background:#0f2557;">
-        <div style="background:#fff;border-radius:24px;padding:32px 24px;
-                    width:100%;max-width:380px;text-align:center;">
-          <div style="font-size:1.1rem;font-weight:700;color:#0f2557;margin-bottom:16px;">
-            🔍 สแกน QR Code
-          </div>
-          <div id="qr-reader" style="width:100%;border-radius:12px;overflow:hidden;
-                                      border:2px solid #2563eb;min-height:240px;background:#000;">
-          </div>
-          <div id="qr-status" style="margin-top:12px;padding:10px;border-radius:10px;
-                                      background:#f0f9ff;color:#0369a1;font-size:.85rem;">
-            กดปุ่มเพื่อเปิดกล้อง
-          </div>
-          <button id="btnCam" onclick="startCam()"
-                  style="margin-top:12px;width:100%;padding:14px;border:none;
-                         border-radius:12px;background:linear-gradient(135deg,#1a3fa8,#2563eb);
-                         color:#fff;font-size:.95rem;font-weight:600;cursor:pointer;">
-            📷 เปิดกล้องสแกน QR
-          </button>
-          <div id="result-box" style="display:none;margin-top:12px;padding:12px;
-                                       border-radius:10px;font-size:.85rem;"></div>
-        </div>
-      </div>
-    `;
-  }, 500);
-
-  let scanner = null;
-
-  function startCam() {
-    document.getElementById('qr-status').textContent = 'กำลังเปิดกล้อง...';
-    document.getElementById('btnCam').disabled = true;
-
-    scanner = new Html5Qrcode("qr-reader");
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 15, qrbox: { width: 250, height: 250 } },
-      onScanSuccess,
-      () => {}
-    ).then(() => {
-      document.getElementById('qr-status').textContent = '✅ พร้อมสแกน — จ่อ QR Code ให้ตรงกรอบ';
-    }).catch(err => {
-      document.getElementById('qr-status').textContent = '❌ เปิดกล้องไม่ได้: ' + err;
-      document.getElementById('qr-status').style.background = '#fff1f2';
-      document.getElementById('qr-status').style.color = '#be123c';
-      document.getElementById('btnCam').disabled = false;
-    });
-  }
-
-  async function onScanSuccess(token) {
-    scanner.stop();
-    document.getElementById('qr-status').textContent = '🔄 กำลังตรวจสอบ...';
-
-    try {
-      const res = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'verifyQRToken', token: token.trim() })
-      });
-      const json = await res.json();
-
-      const box = document.getElementById('result-box');
-      box.style.display = 'block';
-
-      if (json.data && json.data.length > 0) {
-        document.getElementById('qr-status').textContent = '✅ เข้าสู่ระบบสำเร็จ!';
-        document.getElementById('qr-status').style.background = '#f0fdf4';
-        document.getElementById('qr-status').style.color = '#15803d';
-        box.style.background = '#f0fdf4';
-        box.style.color = '#15803d';
-        box.innerHTML = '✅ พบข้อมูล ' + json.data.length + ' รายการ<br>' +
-                        json.data.map(i => '• ' + i.name).join('<br>');
-      } else {
-        document.getElementById('qr-status').textContent = '❌ QR Code ไม่ถูกต้อง';
-        document.getElementById('qr-status').style.background = '#fff1f2';
-        document.getElementById('qr-status').style.color = '#be123c';
-        box.style.background = '#fff1f2';
-        box.style.color = '#be123c';
-        box.textContent = '❌ ไม่พบข้อมูล หรือ QR Code ไม่ถูกต้อง';
-        // เปิดกล้องใหม่หลัง 2 วิ
-        setTimeout(() => { startCam(); }, 2000);
-      }
-    } catch(err) {
-      document.getElementById('qr-status').textContent = '❌ Error: ' + err.message;
-      setTimeout(() => { startCam(); }, 2000);
-    }
-  }
-</script>
-    
 </body>
 </html>
