@@ -1,6 +1,6 @@
 /* if update code into index.html then change version this code */
 
-const CACHE = 'eDS-v4';
+const CACHE = 'eDS-v5';
 /*-------------------------------------------------------------*/
 const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
