@@ -1,5 +1,5 @@
 {
-  "name": "SNE-eDocument System",
+  "name": "SNE-eDocument (eDS)",
   "short_name": "eDS",
   "description": "SNE Electronic Document System - ระบบเอกสารอิเล็กทรอนิกส์",
   "start_url": "/eDS/APPS/eDS/index.html",
