@@ -1,4 +1,4 @@
-<!-------- GitHub : eatsempqrscan.html / Scan Face-------->
+<!-------- GitHub : eatsempqrscan.html -------->
 
 <!DOCTYPE html>
 <html lang="th">
@@ -90,6 +90,60 @@ body {
 @keyframes fv-pulse {
     0%,100% { border-color: rgba(134,239,172,0.85); }
     50%      { border-color: rgba(74,222,128,1); box-shadow: 0 0 0 8px rgba(134,239,172,0); }
+}
+
+/* ── Liveness Detection Overlay ── */
+.fv-liveness-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 14px;
+    pointer-events: none;
+    z-index: 10;
+}
+.fv-liveness-challenge {
+    background: rgba(0,0,0,0.72);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 20px;
+    text-align: center;
+    letter-spacing: 0.3px;
+    margin-bottom: 6px;
+    transition: background 0.3s;
+}
+.fv-liveness-challenge.success { background: rgba(22,163,74,0.9); }
+.fv-liveness-challenge.fail    { background: rgba(220,38,38,0.9); }
+.fv-liveness-timer-bar {
+    width: 80%;
+    height: 5px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.fv-liveness-timer-fill {
+    height: 100%;
+    width: 100%;
+    background: #4ade80;
+    border-radius: 4px;
+    transition: width linear, background 0.3s;
+}
+.fv-face-guide.liveness-ok {
+    border-color: rgba(74,222,128,1) !important;
+    box-shadow: 0 0 0 6px rgba(74,222,128,0.3);
+    animation: none;
+}
+.fv-face-guide.liveness-fail {
+    border-color: rgba(239,68,68,1) !important;
+    animation: none;
+}
+@keyframes fv-liveness-success-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
+    100% { box-shadow: 0 0 0 20px rgba(74,222,128,0); }
 }
 
 .fv-preview-area {
@@ -315,7 +369,14 @@ iframe {
 
         <div class="fv-camera-area" id="fvCameraArea">
             <video id="fvVideo" autoplay playsinline muted></video>
-            <div class="fv-face-guide"></div>
+            <div class="fv-face-guide" id="fvFaceGuide"></div>
+            <!-- Liveness Detection Overlay -->
+            <div class="fv-liveness-overlay" id="fvLivenessOverlay" style="display:none;">
+                <div class="fv-liveness-challenge" id="fvLivenessChallenge">กรุณารอ...</div>
+                <div class="fv-liveness-timer-bar">
+                    <div class="fv-liveness-timer-fill" id="fvLivenessTimerFill"></div>
+                </div>
+            </div>
         </div>
 
         <div class="fv-preview-area" id="fvPreviewArea">
@@ -703,6 +764,251 @@ function fvDoCache(retryCount) {
 }
 
 /* ══════════════════════════════════════
+   LIVENESS DETECTION
+   ใช้ MediaPipe FaceMesh (CDN ฟรี)
+   Challenge: สุ่ม 1 ใน 3 — กระพริบตา / อ้าปาก / ยิ้ม
+   จำกัดเวลา 7 วินาที ต่อ challenge
+   ══════════════════════════════════════ */
+var _lvFaceMesh     = null;   // MediaPipe FaceMesh instance
+var _lvLoaded       = false;  // โหลด model แล้ว
+var _lvLoading      = false;  // กำลังโหลด
+var _lvActive       = false;  // กำลัง detect อยู่
+var _lvPassed       = false;  // ผ่าน challenge แล้ว
+var _lvTimerRaf     = null;   // requestAnimationFrame timer
+var _lvDetectLoop   = null;   // setInterval detect loop
+var _lvChallenge    = '';     // action ที่สุ่มได้
+var _lvTimeStart    = 0;      // เวลาเริ่ม challenge
+var _lvTimeLimit    = 7000;   // 7 วินาที
+var _lvBlinkFrames  = 0;      // frame นับ eye closed
+var _lvMouthFrames  = 0;      // frame นับ mouth open
+var _lvSmileFrames  = 0;      // frame นับ smile
+
+// threshold ปรับได้
+var LV_EAR_CLOSE    = 0.22;   // eye aspect ratio ต่ำกว่านี้ = หลับตา
+var LV_MAR_OPEN     = 0.50;   // mouth aspect ratio สูงกว่านี้ = อ้าปาก
+var LV_SMILE_RATIO  = 0.42;   // smile ratio สูงกว่านี้ = ยิ้ม
+var LV_FRAMES_NEED  = 3;      // ต้องเห็น N frame ติดกัน
+
+var LV_CHALLENGES   = ['blink', 'mouth', 'smile'];
+var LV_TEXTS        = {
+    blink : '👁️ กระพริบตา 1 ครั้ง',
+    mouth : '😮 อ้าปากค้างไว้',
+    smile : '😊 ยิ้มให้กว้างๆ'
+};
+
+/* โหลด MediaPipe FaceMesh */
+function lvLoadModel(callback) {
+    if (_lvLoaded) { callback(); return; }
+    if (_lvLoading) { var wait = setInterval(function(){ if (_lvLoaded){ clearInterval(wait); callback(); } }, 200); return; }
+    _lvLoading = true;
+    fvSetStatus('loading', '⏳', 'กำลังโหลดระบบตรวจใบหน้า...');
+
+    // โหลด script MediaPipe
+    function loadScript(url, cb) {
+        var s = document.createElement('script'); s.src = url; s.onload = cb;
+        s.onerror = function(){ console.error('Script load fail:', url); cb(); };
+        document.head.appendChild(s);
+    }
+
+    loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', function(){
+    loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js', function(){
+        if (typeof FaceMesh === 'undefined') {
+            console.warn('MediaPipe ไม่โหลด — ข้าม Liveness');
+            _lvLoaded  = true;
+            _lvLoading = false;
+            callback();
+            return;
+        }
+        _lvFaceMesh = new FaceMesh({ locateFile: function(f){
+            return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f;
+        }});
+        _lvFaceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+        _lvFaceMesh.onResults(lvOnResults);
+        _lvFaceMesh.initialize().then(function(){
+            _lvLoaded  = true;
+            _lvLoading = false;
+            console.log('✅ FaceMesh ready');
+            callback();
+        }).catch(function(e){
+            console.warn('FaceMesh init fail:', e);
+            _lvLoaded  = true;
+            _lvLoading = false;
+            callback();
+        });
+    });});
+}
+
+/* คำนวณ Eye Aspect Ratio (EAR) */
+function lvEAR(lm, pts) {
+    var p = function(i){ return lm[pts[i]]; };
+    var dist = function(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); };
+    return (dist(p(1),p(5)) + dist(p(2),p(4))) / (2 * dist(p(0),p(3)));
+}
+
+/* คำนวณ Mouth Aspect Ratio (MAR) */
+function lvMAR(lm) {
+    var dist = function(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); };
+    // แนวตั้ง: บน-ล่าง (13→14, 312→317)
+    var v1 = dist(lm[13],  lm[14]);
+    var v2 = dist(lm[312], lm[317]);
+    // แนวนอน: มุมปาก (61→291)
+    var h  = dist(lm[61],  lm[291]);
+    return (v1 + v2) / (2 * h);
+}
+
+/* คำนวณ Smile Ratio */
+function lvSmileRatio(lm) {
+    var dist = function(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); };
+    // ความกว้างปาก / ความสูงปาก
+    var mouthW = dist(lm[61], lm[291]);
+    var mouthH = dist(lm[13], lm[14]) + 0.001;
+    return mouthW / (mouthH * 10); // normalize
+}
+
+/* รับผลจาก FaceMesh */
+function lvOnResults(results) {
+    if (!_lvActive || _lvPassed) return;
+    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+
+    var lm = results.multiFaceLandmarks[0];
+
+    // Left eye: 362,385,387,263,373,380  Right eye: 33,160,158,133,153,144
+    var earL = lvEAR(lm, [362,385,387,263,373,380]);
+    var earR = lvEAR(lm, [33,160,158,133,153,144]);
+    var ear  = (earL + earR) / 2;
+    var mar  = lvMAR(lm);
+    var smR  = lvSmileRatio(lm);
+
+    if (_lvChallenge === 'blink') {
+        if (ear < LV_EAR_CLOSE) { _lvBlinkFrames++; } else { if (_lvBlinkFrames > 0) _lvBlinkFrames = 0; }
+        if (_lvBlinkFrames >= LV_FRAMES_NEED) lvPass();
+
+    } else if (_lvChallenge === 'mouth') {
+        if (mar > LV_MAR_OPEN) { _lvMouthFrames++; } else { _lvMouthFrames = 0; }
+        if (_lvMouthFrames >= LV_FRAMES_NEED) lvPass();
+
+    } else if (_lvChallenge === 'smile') {
+        if (smR > LV_SMILE_RATIO) { _lvSmileFrames++; } else { _lvSmileFrames = 0; }
+        if (_lvSmileFrames >= LV_FRAMES_NEED) lvPass();
+    }
+}
+
+/* ส่ง frame ให้ FaceMesh */
+function lvSendFrame() {
+    if (!_lvActive || !_lvFaceMesh || !_lvLoaded) return;
+    var video = document.getElementById('fvVideo');
+    if (video && video.readyState >= 2) {
+        _lvFaceMesh.send({ image: video }).catch(function(){});
+    }
+}
+
+/* เริ่ม Liveness Challenge */
+function lvStart() {
+    // สุ่ม challenge
+    _lvChallenge   = LV_CHALLENGES[Math.floor(Math.random() * LV_CHALLENGES.length)];
+    _lvActive      = true;
+    _lvPassed      = false;
+    _lvBlinkFrames = 0;
+    _lvMouthFrames = 0;
+    _lvSmileFrames = 0;
+    _lvTimeStart   = Date.now();
+
+    // แสดง overlay
+    var ov = document.getElementById('fvLivenessOverlay');
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    if (ov) ov.style.display = 'flex';
+    if (ch) { ch.textContent = LV_TEXTS[_lvChallenge]; ch.className = 'fv-liveness-challenge'; }
+    if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; tf.style.transition = 'none'; }
+
+    // ล็อกปุ่ม Capture ระหว่าง challenge
+    document.getElementById('fvBtnCapture').disabled = true;
+
+    fvSetStatus('loading', '🔍', 'กรุณา ' + LV_TEXTS[_lvChallenge]);
+
+    // timer bar animation
+    setTimeout(function(){
+        if (tf) {
+            tf.style.transition = 'width ' + (_lvTimeLimit/1000) + 's linear';
+            tf.style.width = '0%';
+        }
+    }, 50);
+
+    // detect loop 100ms
+    _lvDetectLoop = setInterval(lvSendFrame, 100);
+
+    // timeout
+    _lvTimerRaf = setTimeout(function(){
+        if (!_lvPassed) lvFail();
+    }, _lvTimeLimit);
+}
+
+/* ผ่าน Challenge */
+function lvPass() {
+    if (_lvPassed) return;
+    _lvPassed = true;
+    _lvActive = false;
+    clearInterval(_lvDetectLoop);
+    clearTimeout(_lvTimerRaf);
+
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    var fg = document.getElementById('fvFaceGuide');
+    if (ch) { ch.textContent = '✅ ยืนยันตัวตนสำเร็จ! กำลังถ่ายภาพ...'; ch.className = 'fv-liveness-challenge success'; }
+    if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; }
+    if (fg) fg.className = 'fv-face-guide liveness-ok';
+
+    fvSetStatus('loading', '✅', 'ผ่านการยืนยัน — กำลังถ่ายภาพอัตโนมัติ...');
+
+    // รอ 800ms แล้ว Capture อัตโนมัติ (ให้ผู้ใช้เห็น feedback ก่อน)
+    setTimeout(function(){
+        var ov = document.getElementById('fvLivenessOverlay');
+        if (ov) ov.style.display = 'none';
+        if (fg) fg.className = 'fv-face-guide';
+        fvCapture();
+    }, 800);
+}
+
+/* ไม่ผ่าน Challenge — ลองใหม่ */
+function lvFail() {
+    _lvActive = false;
+    clearInterval(_lvDetectLoop);
+    clearTimeout(_lvTimerRaf);
+
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    var fg = document.getElementById('fvFaceGuide');
+    if (ch) { ch.textContent = '⏱️ หมดเวลา — กรุณาลองใหม่'; ch.className = 'fv-liveness-challenge fail'; }
+    if (tf) { tf.style.width = '0%'; tf.style.background = '#ef4444'; }
+    if (fg) fg.className = 'fv-face-guide liveness-fail';
+
+    fvSetStatus('error', '⚠️', 'หมดเวลา — กดปุ่ม "ถ่ายภาพ" เพื่อลองใหม่');
+    document.getElementById('fvBtnCapture').disabled = false;
+
+    // reset guide หลัง 1.5s
+    setTimeout(function(){
+        if (fg) fg.className = 'fv-face-guide';
+        var ov = document.getElementById('fvLivenessOverlay');
+        if (ov) ov.style.display = 'none';
+        fvSetStatus('loading', '📷', 'กล้องพร้อม — กด "ถ่ายภาพ" เพื่อเริ่ม Liveness ใหม่');
+    }, 1500);
+}
+
+/* Entry point: กดปุ่ม "ถ่ายภาพ" → เริ่ม Liveness ก่อน */
+function fvStartLiveness() {
+    lvLoadModel(function(){
+        if (!_lvLoaded || typeof FaceMesh === 'undefined') {
+            // MediaPipe โหลดไม่ได้ (เน็ตช้า/เก่า) → ข้ามไป Capture เลย
+            console.warn('⚠️ Liveness ไม่พร้อม — Capture โดยไม่มี Liveness');
+            fvSetStatus('loading', '📷', 'กล้องพร้อม — กำลังถ่ายภาพ...');
+            fvCapture();
+            return;
+        }
+        lvStart();
+    });
+}
+
+/* ══════════════════════════════════════
    ถ่ายภาพ + timestamp + GPS (cache ครั้งเดียว)
    ══════════════════════════════════════ */
 function fvCapture() {
@@ -891,7 +1197,7 @@ function fvShowReadyToast() {
 
 /* ── bind buttons ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
-document.getElementById('fvBtnCapture').addEventListener('click', fvCapture);
+document.getElementById('fvBtnCapture').addEventListener('click', fvStartLiveness); // ✅ Liveness ก่อน Capture
 document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
 document.getElementById('fvBtnRetake2').addEventListener('click', fvRetake);
 window.addEventListener('beforeunload', fvStopStream);
