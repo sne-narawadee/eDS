@@ -532,6 +532,24 @@ function fvHideIframeLoading() {
    เปิดกล้อง
    ══════════════════════════════════════ */
 function fvOpenCamera() {
+    // ── ✅ Reset Liveness state ทุกครั้งที่เปิดกล้องใหม่ ──
+    _lvActive      = false;
+    _lvPassed      = false;
+    _lvChallenge   = '';
+    _lvBlinkFrames = 0;
+    _lvMouthFrames = 0;
+    _lvSmileFrames = 0;
+    clearInterval(_lvDetectLoop);
+    clearTimeout(_lvTimerRaf);
+    var _ov = document.getElementById('fvLivenessOverlay');
+    var _fg = document.getElementById('fvFaceGuide');
+    var _ch = document.getElementById('fvLivenessChallenge');
+    var _tf = document.getElementById('fvLivenessTimerFill');
+    if (_ov) _ov.style.display = 'none';
+    if (_fg) _fg.className = 'fv-face-guide';
+    if (_ch) { _ch.textContent = ''; _ch.className = 'fv-liveness-challenge'; }
+    if (_tf) { _tf.style.transition = 'none'; _tf.style.width = '100%'; _tf.style.background = '#4ade80'; }
+
     fvSetStatus('loading', '⏳', 'กำลังเปิดกล้อง...');
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1161,6 +1179,27 @@ function fvCapture() {
    ถ่ายใหม่
    ══════════════════════════════════════ */
 function fvRetake() {
+    // ── ✅ Reset Liveness state ทั้งหมดก่อน ──
+    _lvActive      = false;
+    _lvPassed      = false;
+    _lvChallenge   = '';
+    _lvBlinkFrames = 0;
+    _lvMouthFrames = 0;
+    _lvSmileFrames = 0;
+    clearInterval(_lvDetectLoop);
+    clearTimeout(_lvTimerRaf);
+
+    // ซ่อน Liveness overlay และ reset วงกลม guide
+    var ov = document.getElementById('fvLivenessOverlay');
+    var fg = document.getElementById('fvFaceGuide');
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    if (ov) ov.style.display = 'none';
+    if (fg) fg.className = 'fv-face-guide';
+    if (ch) { ch.textContent = ''; ch.className = 'fv-liveness-challenge'; }
+    if (tf) { tf.style.transition = 'none'; tf.style.width = '100%'; tf.style.background = '#4ade80'; }
+
+    // ── Reset ข้อมูลภาพเดิม ──
     fvVerified = false;
     fvDataUrl  = '';
     fvHideIframeLoading();
