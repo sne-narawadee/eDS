@@ -954,19 +954,28 @@ function lvPass() {
     var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
     var fg = document.getElementById('fvFaceGuide');
-    if (ch) { ch.textContent = '✅ ยืนยันตัวตนสำเร็จ! กำลังถ่ายภาพ...'; ch.className = 'fv-liveness-challenge success'; }
     if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; }
     if (fg) fg.className = 'fv-face-guide liveness-ok';
 
-    fvSetStatus('loading', '✅', 'ผ่านการยืนยัน — กำลังถ่ายภาพอัตโนมัติ...');
+    // ── Step 1: แจ้งให้กลับหน้าตรง ──
+    if (ch) { ch.textContent = '✅ ผ่านแล้ว! กรุณามองตรงๆ'; ch.className = 'fv-liveness-challenge success'; }
+    fvSetStatus('loading', '✅', 'ผ่านแล้ว — กรุณามองตรงๆ กำลังจะถ่ายภาพ...');
 
-    // รอ 800ms แล้ว Capture อัตโนมัติ (ให้ผู้ใช้เห็น feedback ก่อน)
-    setTimeout(function(){
-        var ov = document.getElementById('fvLivenessOverlay');
-        if (ov) ov.style.display = 'none';
-        if (fg) fg.className = 'fv-face-guide';
-        fvCapture();
-    }, 800);
+    // ── Step 2: นับถอยหลัง 3 วินาที ให้หน้ากลับสู่ท่าปกติ ──
+    var countdown = 3;
+    var countTimer = setInterval(function() {
+        countdown--;
+        if (ch) ch.textContent = '📷 กรุณามองตรงๆ ... ' + countdown;
+        if (countdown <= 0) {
+            clearInterval(countTimer);
+            // ── Step 3: Capture หน้าตรง ──
+            var ov = document.getElementById('fvLivenessOverlay');
+            if (ov) ov.style.display = 'none';
+            if (fg) fg.className = 'fv-face-guide';
+            fvSetStatus('loading', '📸', 'กำลังถ่ายภาพหน้าตรง...');
+            fvCapture();
+        }
+    }, 1000);
 }
 
 /* ไม่ผ่าน Challenge — ลองใหม่ */
