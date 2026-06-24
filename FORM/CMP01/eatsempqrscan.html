@@ -92,59 +92,31 @@ body {
     50%      { border-color: rgba(74,222,128,1); box-shadow: 0 0 0 8px rgba(134,239,172,0); }
 }
 
-/* ── Liveness Detection Overlay ── */
+/* ── Liveness Overlay ── */
 .fv-liveness-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    padding-bottom: 14px;
-    pointer-events: none;
-    z-index: 10;
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 12px; pointer-events: none; z-index: 10;
 }
 .fv-liveness-challenge {
-    background: rgba(0,0,0,0.72);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    padding: 8px 18px;
-    border-radius: 20px;
-    text-align: center;
-    letter-spacing: 0.3px;
-    margin-bottom: 6px;
-    transition: background 0.3s;
+    background: rgba(0,0,0,0.72); color: #fff;
+    font-size: 15px; font-weight: 700;
+    padding: 7px 16px; border-radius: 20px;
+    text-align: center; margin-bottom: 6px;
 }
 .fv-liveness-challenge.success { background: rgba(22,163,74,0.9); }
 .fv-liveness-challenge.fail    { background: rgba(220,38,38,0.9); }
 .fv-liveness-timer-bar {
-    width: 80%;
-    height: 5px;
-    background: rgba(255,255,255,0.25);
-    border-radius: 4px;
-    overflow: hidden;
+    width: 78%; height: 5px;
+    background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden;
 }
 .fv-liveness-timer-fill {
-    height: 100%;
-    width: 100%;
-    background: #4ade80;
-    border-radius: 4px;
-    transition: width linear, background 0.3s;
+    height: 100%; width: 100%;
+    background: #4ade80; border-radius: 4px;
 }
-.fv-face-guide.liveness-ok {
-    border-color: rgba(74,222,128,1) !important;
-    box-shadow: 0 0 0 6px rgba(74,222,128,0.3);
-    animation: none;
-}
-.fv-face-guide.liveness-fail {
-    border-color: rgba(239,68,68,1) !important;
-    animation: none;
-}
-@keyframes fv-liveness-success-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
-    100% { box-shadow: 0 0 0 20px rgba(74,222,128,0); }
-}
+.fv-face-guide.lv-ok   { border-color: rgba(74,222,128,1) !important; animation: none; box-shadow: 0 0 0 6px rgba(74,222,128,0.3); }
+.fv-face-guide.lv-fail { border-color: rgba(239,68,68,1)  !important; animation: none; }
 
 .fv-preview-area {
     display: none;
@@ -370,9 +342,8 @@ iframe {
         <div class="fv-camera-area" id="fvCameraArea">
             <video id="fvVideo" autoplay playsinline muted></video>
             <div class="fv-face-guide" id="fvFaceGuide"></div>
-            <!-- Liveness Detection Overlay -->
-            <div class="fv-liveness-overlay" id="fvLivenessOverlay" style="display:none;">
-                <div class="fv-liveness-challenge" id="fvLivenessChallenge">กรุณารอ...</div>
+            <div class="fv-liveness-overlay" id="fvLivenessOverlay" style="display:none">
+                <div class="fv-liveness-challenge" id="fvLivenessChallenge"></div>
                 <div class="fv-liveness-timer-bar">
                     <div class="fv-liveness-timer-fill" id="fvLivenessTimerFill"></div>
                 </div>
@@ -532,26 +503,6 @@ function fvHideIframeLoading() {
    เปิดกล้อง
    ══════════════════════════════════════ */
 function fvOpenCamera() {
-    // ── ✅ Reset Liveness state ทุกครั้งที่เปิดกล้องใหม่ ──
-    _lvActive      = false;
-    _lvPassed      = false;
-    _lvChallenge   = '';
-    _lvBlinkFrames = 0;
-    _lvMouthFrames = 0;
-    _lvSmileFrames = 0;
-    _lvActionCount = 0;
-    _lvInAction    = false;
-    clearInterval(_lvDetectLoop);
-    clearTimeout(_lvTimerRaf);
-    var _ov = document.getElementById('fvLivenessOverlay');
-    var _fg = document.getElementById('fvFaceGuide');
-    var _ch = document.getElementById('fvLivenessChallenge');
-    var _tf = document.getElementById('fvLivenessTimerFill');
-    if (_ov) _ov.style.display = 'none';
-    if (_fg) _fg.className = 'fv-face-guide';
-    if (_ch) { _ch.textContent = ''; _ch.className = 'fv-liveness-challenge'; }
-    if (_tf) { _tf.style.transition = 'none'; _tf.style.width = '100%'; _tf.style.background = '#4ade80'; }
-
     fvSetStatus('loading', '⏳', 'กำลังเปิดกล้อง...');
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -784,318 +735,9 @@ function fvDoCache(retryCount) {
 }
 
 /* ══════════════════════════════════════
-   LIVENESS DETECTION
-   ใช้ MediaPipe FaceMesh (CDN ฟรี)
-   Challenge: สุ่ม 1 ใน 3 — กระพริบตา / อ้าปาก / ยิ้ม
-   จำกัดเวลา 7 วินาที ต่อ challenge
-   ══════════════════════════════════════ */
-var _lvFaceMesh     = null;   // MediaPipe FaceMesh instance
-var _lvLoaded       = false;  // โหลด model แล้ว
-var _lvLoading      = false;  // กำลังโหลด
-var _lvActive       = false;  // กำลัง detect อยู่
-var _lvPassed       = false;  // ผ่าน challenge แล้ว
-var _lvTimerRaf     = null;   // requestAnimationFrame timer
-var _lvDetectLoop   = null;   // setInterval detect loop
-var _lvChallenge    = '';     // action ที่สุ่มได้
-var _lvTimeStart    = 0;      // เวลาเริ่ม challenge
-var _lvTimeLimit    = 7000;   // 7 วินาที
-var _lvBlinkFrames  = 0;      // frame นับ eye closed
-var _lvMouthFrames  = 0;      // frame นับ mouth open
-var _lvSmileFrames  = 0;      // frame นับ smile
-var _lvActionCount  = 0;      // นับจำนวนครั้งที่ทำ action สำเร็จ
-var _lvActionNeed   = 2;      // ต้องทำกี่ครั้งจึงผ่าน (ลดจาก 3 → 2)
-var _lvInAction     = false;  // กำลังอยู่ใน action (ป้องกันนับซ้ำ)
-
-// threshold ปรับได้
-var LV_EAR_CLOSE    = 0.22;   // eye aspect ratio ต่ำกว่านี้ = หลับตา
-var LV_MAR_OPEN     = 0.35;   // mouth aspect ratio สูงกว่านี้ = อ้าปาก
-var LV_FRAMES_NEED  = 3;      // ต้องเห็น N frame ติดกัน
-
-var LV_CHALLENGES   = ['blink', 'mouth'];  // ✅ ตัด smile ออก เหลือ 2 action
-var LV_TEXTS        = {
-    blink : '👁️ กระพริบตา 1 ครั้ง',
-    mouth : '😮 อ้าปากค้างไว้'
-};
-
-/* โหลด MediaPipe FaceMesh */
-function lvLoadModel(callback) {
-    if (_lvLoaded) { callback(); return; }
-    if (_lvLoading) { var wait = setInterval(function(){ if (_lvLoaded){ clearInterval(wait); callback(); } }, 200); return; }
-    _lvLoading = true;
-    fvSetStatus('loading', '⏳', 'กำลังโหลดระบบตรวจใบหน้า...');
-
-    // โหลด script MediaPipe
-    function loadScript(url, cb) {
-        var s = document.createElement('script'); s.src = url; s.onload = cb;
-        s.onerror = function(){ console.error('Script load fail:', url); cb(); };
-        document.head.appendChild(s);
-    }
-
-    loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', function(){
-    loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js', function(){
-        if (typeof FaceMesh === 'undefined') {
-            console.warn('MediaPipe ไม่โหลด — ข้าม Liveness');
-            _lvLoaded  = true;
-            _lvLoading = false;
-            callback();
-            return;
-        }
-        _lvFaceMesh = new FaceMesh({ locateFile: function(f){
-            return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f;
-        }});
-        _lvFaceMesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
-        _lvFaceMesh.onResults(lvOnResults);
-        _lvFaceMesh.initialize().then(function(){
-            _lvLoaded  = true;
-            _lvLoading = false;
-            console.log('✅ FaceMesh ready');
-            callback();
-        }).catch(function(e){
-            console.warn('FaceMesh init fail:', e);
-            _lvLoaded  = true;
-            _lvLoading = false;
-            callback();
-        });
-    });});
-}
-
-/* คำนวณ Eye Aspect Ratio (EAR) */
-function lvEAR(lm, pts) {
-    var p = function(i){ return lm[pts[i]]; };
-    var dist = function(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); };
-    return (dist(p(1),p(5)) + dist(p(2),p(4))) / (2 * dist(p(0),p(3)));
-}
-
-/* คำนวณ Mouth Aspect Ratio (MAR)
-   ใช้ landmark ที่ถูกต้องสำหรับ MediaPipe FaceMesh 468 จุด
-   บนริมฝีปาก: 13  ล่างริมฝีปาก: 14
-   มุมปากซ้าย: 61  มุมปากขวา: 291
-   จุดบนเพิ่มเติม: 82, 87  จุดล่างเพิ่มเติม: 312, 317 */
-function lvMAR(lm) {
-    var dist = function(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); };
-    // แนวตั้ง 3 คู่ (เพิ่มความแม่นยำ)
-    var v1 = dist(lm[82],  lm[87]);   // บนซ้าย → ล่างซ้าย
-    var v2 = dist(lm[13],  lm[14]);   // กลาง บน → กลาง ล่าง
-    var v3 = dist(lm[312], lm[317]);  // บนขวา → ล่างขวา
-    // แนวนอน มุมปาก
-    var h  = dist(lm[61],  lm[291]);
-    return (v1 + v2 + v3) / (3 * h);
-}
-
-/* ตรวจ Smile โดยใช้ cheek lift — ไม่ใช้แล้ว (ตัดออก) */
-// function lvIsSmile(lm) { ... }
-
-/* รับผลจาก FaceMesh */
-function lvOnResults(results) {
-    if (!_lvActive || _lvPassed) return;
-    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
-
-    var lm = results.multiFaceLandmarks[0];
-
-    var earL = lvEAR(lm, [362,385,387,263,373,380]);
-    var earR = lvEAR(lm, [33,160,158,133,153,144]);
-    var ear  = (earL + earR) / 2;
-    var mar  = lvMAR(lm);
-
-    // ── Debug log (เปิดใน Console เพื่อดูค่าจริง) ──
-    // console.log('EAR:', ear.toFixed(3), '| MAR:', mar.toFixed(3));
-
-    var isDoingAction = false;
-
-    if (_lvChallenge === 'blink') {
-        isDoingAction = (ear < LV_EAR_CLOSE);
-    } else if (_lvChallenge === 'mouth') {
-        isDoingAction = (mar > LV_MAR_OPEN);
-    }
-
-    if (isDoingAction) {
-        // สะสม frame ขณะทำ action
-        if (_lvChallenge === 'blink')  _lvBlinkFrames++;
-        if (_lvChallenge === 'mouth')  _lvMouthFrames++;
-
-        var frames = (_lvChallenge === 'blink') ? _lvBlinkFrames : _lvMouthFrames;
-
-        // ถึง threshold → นับ 1 ครั้ง
-        if (frames >= LV_FRAMES_NEED && !_lvInAction) {
-            _lvInAction    = true;  // ล็อกไม่ให้นับซ้ำในครั้งเดียวกัน
-            _lvActionCount++;
-
-            // reset frame counter รอรับ action ครั้งถัดไป
-            _lvBlinkFrames = 0;
-            _lvMouthFrames = 0;
-            _lvSmileFrames = 0;
-
-            // อัปเดต UI แสดงความคืบหน้า
-            var ch = document.getElementById('fvLivenessChallenge');
-            if (_lvActionCount >= _lvActionNeed) {
-                // ครบ 3 ครั้ง → ผ่าน
-                lvPass();
-            } else {
-                // ยังไม่ครบ → แสดงจำนวนที่ทำไปแล้ว
-                if (ch) {
-                    ch.textContent = LV_TEXTS[_lvChallenge] +
-                        '  (' + _lvActionCount + '/' + _lvActionNeed + ')';
-                }
-                fvSetStatus('loading', '🔍',
-                    'ทำแล้ว ' + _lvActionCount + '/' + _lvActionNeed + ' ครั้ง — ทำต่อเลย!');
-            }
-        }
-    } else {
-        // หน้ากลับสู่ท่าปกติ → ปลดล็อกให้นับครั้งถัดไปได้
-        if (_lvInAction) {
-            _lvInAction    = false;
-            _lvBlinkFrames = 0;
-            _lvMouthFrames = 0;
-            _lvSmileFrames = 0;
-        }
-    }
-}
-
-/* ส่ง frame ให้ FaceMesh */
-function lvSendFrame() {
-    if (!_lvActive || !_lvFaceMesh || !_lvLoaded) return;
-    var video = document.getElementById('fvVideo');
-    if (video && video.readyState >= 2) {
-        _lvFaceMesh.send({ image: video }).catch(function(){});
-    }
-}
-
-/* เริ่ม Liveness Challenge */
-function lvStart() {
-    // สุ่ม challenge
-    _lvChallenge   = LV_CHALLENGES[Math.floor(Math.random() * LV_CHALLENGES.length)];
-    _lvActive      = true;
-    _lvPassed      = false;
-    _lvBlinkFrames = 0;
-    _lvMouthFrames = 0;
-    _lvSmileFrames = 0;
-    _lvActionCount = 0;      // ✅ reset จำนวนครั้ง
-    _lvInAction    = false;  // ✅ reset สถานะ action
-    _lvTimeStart   = Date.now();
-
-    // แสดง overlay
-    var ov = document.getElementById('fvLivenessOverlay');
-    var ch = document.getElementById('fvLivenessChallenge');
-    var tf = document.getElementById('fvLivenessTimerFill');
-    if (ov) ov.style.display = 'flex';
-    if (ch) {
-        ch.textContent = LV_TEXTS[_lvChallenge] + '  (0/' + _lvActionNeed + ')';
-        ch.className = 'fv-liveness-challenge';
-    }
-    if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; tf.style.transition = 'none'; }
-
-    // ล็อกปุ่ม Capture ระหว่าง challenge
-    document.getElementById('fvBtnCapture').disabled = true;
-
-    fvSetStatus('loading', '🔍', LV_TEXTS[_lvChallenge] + ' ให้ครบ ' + _lvActionNeed + ' ครั้ง');
-
-    // timer bar animation
-    setTimeout(function(){
-        if (tf) {
-            tf.style.transition = 'width ' + (_lvTimeLimit/1000) + 's linear';
-            tf.style.width = '0%';
-        }
-    }, 50);
-
-    // detect loop 100ms
-    _lvDetectLoop = setInterval(lvSendFrame, 100);
-
-    // timeout
-    _lvTimerRaf = setTimeout(function(){
-        if (!_lvPassed) lvFail();
-    }, _lvTimeLimit);
-}
-
-/* ผ่าน Challenge */
-function lvPass() {
-    if (_lvPassed) return;
-    _lvPassed = true;
-    _lvActive = false;
-    clearInterval(_lvDetectLoop);
-    clearTimeout(_lvTimerRaf);
-
-    var ch = document.getElementById('fvLivenessChallenge');
-    var tf = document.getElementById('fvLivenessTimerFill');
-    var fg = document.getElementById('fvFaceGuide');
-    if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; }
-    if (fg) fg.className = 'fv-face-guide liveness-ok';
-    if (ch) { ch.textContent = '✅ ยืนยันตัวตนสำเร็จ!'; ch.className = 'fv-liveness-challenge success'; }
-
-    fvSetStatus('loading', '✅', 'ผ่านการยืนยันตัวตน — กำลังบันทึก...');
-
-    // ซ่อน overlay แล้วบันทึกภาพที่ถ่ายไว้แล้ว
-    setTimeout(function(){
-        var ov = document.getElementById('fvLivenessOverlay');
-        if (ov) ov.style.display = 'none';
-        if (fg) fg.className = 'fv-face-guide';
-        fvCommitCapture();  // ✅ บันทึกภาพที่ capture ไว้ตอนกดปุ่ม
-    }, 800);
-}
-
-/* ไม่ผ่าน Challenge — ลองใหม่ */
-function lvFail() {
-    _lvActive = false;
-    clearInterval(_lvDetectLoop);
-    clearTimeout(_lvTimerRaf);
-
-    // ✅ ล้างภาพที่ถ่ายไว้ เพราะต้องเริ่มใหม่ทั้งหมด
-    _fvPendingCanvas = null;
-    _fvPendingCtx    = null;
-    _fvPendingGpsFn  = null;
-    fvVerified = false;
-    document.getElementById('fvPreviewArea').classList.remove('active');
-    document.getElementById('fvCameraArea').classList.add('active');
-
-    var ch = document.getElementById('fvLivenessChallenge');
-    var tf = document.getElementById('fvLivenessTimerFill');
-    var fg = document.getElementById('fvFaceGuide');
-    if (ch) { ch.textContent = '⏱️ หมดเวลา — กรุณาลองใหม่'; ch.className = 'fv-liveness-challenge fail'; }
-    if (tf) { tf.style.width = '0%'; tf.style.background = '#ef4444'; }
-    if (fg) fg.className = 'fv-face-guide liveness-fail';
-
-    fvSetStatus('error', '⚠️', 'หมดเวลา — กดปุ่ม "ถ่ายภาพ" เพื่อลองใหม่');
-    document.getElementById('fvBtnCapture').disabled = false;
-
-    setTimeout(function(){
-        if (fg) fg.className = 'fv-face-guide';
-        var ov = document.getElementById('fvLivenessOverlay');
-        if (ov) ov.style.display = 'none';
-        fvSetStatus('loading', '📷', 'กล้องพร้อม — กด "ถ่ายภาพ" เพื่อเริ่มใหม่');
-    }, 1500);
-}
-
-/* Entry point: กดปุ่ม "ถ่ายภาพ" → Capture ก่อน → แล้วค่อย check Action */
-function fvStartLiveness() {
-    lvLoadModel(function(){
-        if (!_lvLoaded || typeof FaceMesh === 'undefined') {
-            // MediaPipe โหลดไม่ได้ → Capture แล้วบันทึกเลย
-            console.warn('⚠️ Liveness ไม่พร้อม — Capture โดยไม่มี Liveness');
-            fvSetStatus('loading', '📷', 'กล้องพร้อม — กำลังถ่ายภาพ...');
-            fvCapture();
-            return;
-        }
-        // ✅ Step 1: Capture หน้าตรงก่อนเลย (ผู้ใช้มองตรงอยู่แล้ว)
-        fvSetStatus('loading', '📸', 'กำลังถ่ายภาพหน้าตรง...');
-        fvCaptureOnly(function(){
-            // ✅ Step 2: หลัง Capture แล้วค่อยเริ่ม Action challenge
-            lvStart();
-        });
-    });
-}
-
-/* ══════════════════════════════════════
    ถ่ายภาพ + timestamp + GPS (cache ครั้งเดียว)
-   fvCaptureOnly(callback) — ถ่ายภาพ+preview แต่ยังไม่บันทึก GAS
-   fvCapture()             — ถ่ายภาพ+preview+บันทึก GAS ทันที (กรณี Liveness ไม่พร้อม)
    ══════════════════════════════════════ */
-
-// ✅ เก็บ canvas/ctx ไว้ให้ lvPass() เรียกบันทึกได้ภายหลัง
-var _fvPendingCanvas = null;
-var _fvPendingCtx    = null;
-var _fvPendingGpsFn  = null;  // function ที่จะ draw GPS + cache
-
-function fvCaptureOnly(onCaptured) {
-    // ถ่ายภาพ+แสดง preview แต่ยังไม่บันทึก — รอผ่าน Action ก่อน
+function fvCapture() {
     var video  = document.getElementById('fvVideo');
     var canvas = document.getElementById('fvCanvas');
     if (!video.videoWidth) {
@@ -1103,18 +745,20 @@ function fvCaptureOnly(onCaptured) {
         return;
     }
 
+    // ── กำหนดขนาด canvas ตาม video ──
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
+
     var ctx = canvas.getContext('2d');
 
-    // วาดภาพ (mirror)
+    // ── วาดภาพ (mirror) ──
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // Timestamp
+    // ── Timestamp ──
     var now   = new Date();
     var pad   = function(n) { return n < 10 ? '0' + n : '' + n; };
     var stamp = pad(now.getDate()) + '/' +
@@ -1124,6 +768,7 @@ function fvCaptureOnly(onCaptured) {
                 pad(now.getMinutes()) + ':' +
                 pad(now.getSeconds());
 
+    // ── ขนาด font: timestamp ใหญ่-ไม่หนา / GPS เล็กกว่า ──
     var gpsFontSize = Math.max(14, Math.round(canvas.width * 0.032));
     var gpsBarH     = gpsFontSize + Math.round(gpsFontSize * 0.5) * 2;
     var tsFontSize  = Math.max(18, Math.round(canvas.width * 0.048));
@@ -1131,11 +776,12 @@ function fvCaptureOnly(onCaptured) {
     var tsBarH      = tsFontSize + tsPadding * 2;
     var gpsPadding  = Math.round(gpsFontSize * 0.5);
 
+    // ── เก็บค่า tsBarH และขนาด canvas ไว้ใช้ใน fvDoCache (ต่าง scope) ──
     window._fvTsBarH  = tsBarH;
     window._fvCanvasW = canvas.width;
     window._fvCanvasH = canvas.height;
 
-    // แถบ Timestamp ด้านบน
+    // ── แถบ Timestamp ด้านบน: โปร่งแสง ไม่หนา ──
     ctx.fillStyle    = 'rgba(0,0,0,0.30)';
     ctx.fillRect(0, 0, canvas.width, tsBarH);
     ctx.font         = tsFontSize + 'px monospace';
@@ -1143,128 +789,95 @@ function fvCaptureOnly(onCaptured) {
     ctx.textBaseline = 'middle';
     ctx.fillText('\u23F1 ' + stamp, tsPadding, tsBarH / 2);
 
-    // เก็บ canvas+ctx+gps function ไว้รอ lvPass()
-    _fvPendingCanvas = canvas;
-    _fvPendingCtx    = ctx;
-    _fvPendingGpsFn  = function() {
-        fvSetStatus('loading', '⏳', 'กำลังระบุตำแหน่ง GPS...');
-        var cs = document.getElementById('fvCompactStatus');
-        if (cs) cs.textContent = '⏳ กำลังระบุตำแหน่ง GPS...';
-
-        function doDrawAndCache(useLat, useLng, addr) {
-            fvDrawGpsBar(_fvPendingCanvas, _fvPendingCtx, gpsFontSize, gpsPadding, gpsBarH, useLat, useLng, addr || '');
-            fvDataUrl = _fvPendingCanvas.toDataURL('image/jpeg', 0.82);
-            console.log('Ready size:', Math.round(fvDataUrl.length/1024), 'KB',
-                        useLat ? 'GPS:' + useLat : 'no GPS',
-                        addr   ? 'addr:ok' : 'no addr');
-            fvDoCache();
-        }
-
-        function fvFinalizeAndCache(lat, lng) {
-            var useLat = (lat && lat !== '') ? lat : fvCachedLat;
-            var useLng = (lng && lng !== '') ? lng : fvCachedLng;
-            if (useLat && useLng) {
-                var done  = false;
-                var timer = setTimeout(function() {
-                    if (done) return;
-                    done = true;
-                    doDrawAndCache(useLat, useLng, '');
-                }, 4000);
-                fvReverseGeocode(useLat, useLng, function(addr) {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    doDrawAndCache(useLat, useLng, addr);
-                });
-            } else {
-                doDrawAndCache('', '', '');
-            }
-        }
-        fvProceedWithCachedGps(fvFinalizeAndCache);
-    };
-
-    // แสดง preview ทันที (ยังไม่หยุดกล้อง — รอ action ก่อน)
-    document.getElementById('fvPreviewArea').classList.add('active');
-    document.getElementById('fvPreviewBadge').textContent = stamp;
-    document.getElementById('fvBtnRetake').style.display = 'none';
-    fvVerified = false;  // ยังไม่ผ่าน จนกว่าจะผ่าน Action
-
-    if (onCaptured) onCaptured();
-}
-
-/* เรียกโดย lvPass() เมื่อผ่าน Action ครบ → บันทึกจริง */
-function fvCommitCapture() {
-    if (!_fvPendingGpsFn) return;
+    // ── หยุดกล้อง + แสดง preview ──
     fvStopStream();
     document.getElementById('fvCameraArea').classList.remove('active');
+    document.getElementById('fvPreviewArea').classList.add('active');
+    document.getElementById('fvPreviewBadge').textContent = stamp;
     document.getElementById('fvBtnCapture').disabled = true;
     document.getElementById('fvBtnOpen').disabled    = false;
     document.getElementById('fvBtnRetake').style.display = 'none';
     fvVerified = true;
-    _fvPendingGpsFn();  // draw GPS + cache + บันทึก GAS
-    _fvPendingGpsFn = null;
-}
 
-/* Reverse Geocode ผ่าน Nominatim */
-function fvReverseGeocode(lat, lng, callback) {
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th',
-          { headers: { 'Accept-Language': 'th' } })
-        .then(function(r) { return r.json(); })
-        .then(function(geo) { callback(geo.display_name || ''); })
-        .catch(function()   { callback(''); });
-}
+    fvSetStatus('loading', '⏳', 'กำลังระบุตำแหน่ง GPS...');
+    var cs = document.getElementById('fvCompactStatus');
+    if (cs) cs.textContent = '⏳ กำลังระบุตำแหน่ง GPS...';
 
-/* ใช้ GPS cache หรือรอ preload */
-function fvProceedWithCachedGps(fvFinalizeAndCache) {
-    if (fvCachedLat && fvCachedLng) {
-        fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-    } else if (!fvGpsReady) {
-        var waitGps = setInterval(function() {
-            if (fvGpsReady) {
-                clearInterval(waitGps);
-                fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-            }
-        }, 300);
-        setTimeout(function() {
-            clearInterval(waitGps);
-            fvGpsReady = true;
-            fvFinalizeAndCache('', '');
-        }, 16000);
-    } else {
-        fvFinalizeAndCache('', '');
+    // ── วาด GPS bar + cache ครั้งเดียว ──
+    function doDrawAndCache(useLat, useLng, addr) {
+        fvDrawGpsBar(canvas, ctx, gpsFontSize, gpsPadding, gpsBarH, useLat, useLng, addr || '');
+        fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        console.log('Ready size:', Math.round(fvDataUrl.length/1024), 'KB',
+                    useLat ? 'GPS:' + useLat : 'no GPS',
+                    addr   ? 'addr:ok' : 'no addr');
+        fvDoCache();
     }
+
+    function fvFinalizeAndCache(lat, lng) {
+        // ใช้ cached GPS เสมอถ้า param ว่าง (race condition)
+        var useLat = (lat && lat !== '') ? lat : fvCachedLat;
+        var useLng = (lng && lng !== '') ? lng : fvCachedLng;
+
+        if (useLat && useLng) {
+            var done  = false;
+            var timer = setTimeout(function() {
+                if (done) return;
+                done = true;
+                console.warn('Nominatim timeout — cache without address');
+                doDrawAndCache(useLat, useLng, '');
+            }, 4000);
+
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th',
+                  { headers: { 'Accept-Language': 'th' } })
+                .then(function(r) { return r.json(); })
+                .then(function(geo) {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    doDrawAndCache(useLat, useLng, geo.display_name || '');
+                })
+                .catch(function() {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timer);
+                    doDrawAndCache(useLat, useLng, '');
+                });
+        } else {
+            doDrawAndCache('', '', '');
+        }
+    }
+
+    // ── ใช้ GPS cache หรือรอ preload ──
+    function fvProceedWithCachedGps() {
+        if (fvCachedLat && fvCachedLng) {
+            fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+        } else if (!fvGpsReady) {
+            // preload ยังไม่เสร็จ — poll รอ
+            var waitGps = setInterval(function() {
+                if (fvGpsReady) {
+                    clearInterval(waitGps);
+                    fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+                }
+            }, 300);
+            setTimeout(function() {
+                clearInterval(waitGps);
+                // ✅ Fix: mark fvGpsReady=true เพื่อป้องกัน interval ยิงหลัง timeout
+                fvGpsReady = true;
+                fvFinalizeAndCache('', '');
+            }, 16000);
+        } else {
+            // GPS ไม่ได้เลย
+            fvFinalizeAndCache('', '');
+        }
+    }
+
+    fvProceedWithCachedGps();
 }
 
 /* ══════════════════════════════════════
    ถ่ายใหม่
    ══════════════════════════════════════ */
 function fvRetake() {
-    // ── ✅ Reset Liveness state ทั้งหมดก่อน ──
-    _lvActive        = false;
-    _lvPassed        = false;
-    _lvChallenge     = '';
-    _lvBlinkFrames   = 0;
-    _lvMouthFrames   = 0;
-    _lvSmileFrames   = 0;
-    _lvActionCount   = 0;
-    _lvInAction      = false;
-    _fvPendingCanvas = null;
-    _fvPendingCtx    = null;
-    _fvPendingGpsFn  = null;
-    clearInterval(_lvDetectLoop);
-    clearTimeout(_lvTimerRaf);
-
-    // ซ่อน Liveness overlay และ reset วงกลม guide
-    var ov = document.getElementById('fvLivenessOverlay');
-    var fg = document.getElementById('fvFaceGuide');
-    var ch = document.getElementById('fvLivenessChallenge');
-    var tf = document.getElementById('fvLivenessTimerFill');
-    if (ov) ov.style.display = 'none';
-    if (fg) fg.className = 'fv-face-guide';
-    if (ch) { ch.textContent = ''; ch.className = 'fv-liveness-challenge'; }
-    if (tf) { tf.style.transition = 'none'; tf.style.width = '100%'; tf.style.background = '#4ade80'; }
-
-    // ── Reset ข้อมูลภาพเดิม ──
     fvVerified = false;
     fvDataUrl  = '';
     fvHideIframeLoading();
@@ -1310,10 +923,234 @@ function fvShowReadyToast() {
 
 /* ── bind buttons ── */
 document.getElementById('fvBtnOpen').addEventListener('click',    fvOpenCamera);
-document.getElementById('fvBtnCapture').addEventListener('click', fvStartLiveness); // ✅ Liveness ก่อน Capture
-document.getElementById('fvBtnRetake').addEventListener('click',  fvRetake);
-document.getElementById('fvBtnRetake2').addEventListener('click', fvRetake);
+document.getElementById('fvBtnCapture').addEventListener('click', fvStartLiveness);
+document.getElementById('fvBtnRetake').addEventListener('click',  fvLvRetake);
+document.getElementById('fvBtnRetake2').addEventListener('click', fvLvRetake);
 window.addEventListener('beforeunload', fvStopStream);
+
+/* ══════════════════════════════════════════════════════
+   LIVENESS DETECTION
+   Flow: กดปุ่ม → Capture หน้าตรงทันที (preview) →
+         ทำ Action 2 ครั้ง → ผ่าน → บันทึก GPS + GAS
+         ไม่ผ่าน → ล้างภาพ → กลับกล้อง → กดใหม่
+   ══════════════════════════════════════════════════════ */
+var _lv = {
+    mesh: null, loaded: false, loading: false,
+    active: false, passed: false,
+    challenge: '', count: 0, need: 2, inAction: false,
+    blinkF: 0, mouthF: 0,
+    detLoop: null, timer: null, timeLimit: 7000
+};
+var LV_EAR_CLOSE  = 0.22;
+var LV_MAR_OPEN   = 0.35;
+var LV_FRAMES     = 3;
+var LV_ACTIONS    = ['blink', 'mouth'];
+var LV_TEXT       = { blink: '👁️ กระพริบตา', mouth: '😮 อ้าปากค้างไว้' };
+
+/* ── reset state ทั้งหมด ── */
+function lvReset() {
+    _lv.active = false; _lv.passed = false;
+    _lv.challenge = ''; _lv.count = 0; _lv.inAction = false;
+    _lv.blinkF = 0; _lv.mouthF = 0;
+    clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
+    var ov = document.getElementById('fvLivenessOverlay');
+    var fg = document.getElementById('fvFaceGuide');
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    if (ov) ov.style.display = 'none';
+    if (fg) fg.className = 'fv-face-guide';
+    if (ch) { ch.textContent = ''; ch.className = 'fv-liveness-challenge'; }
+    if (tf) { tf.style.transition = 'none'; tf.style.width = '100%'; tf.style.background = '#4ade80'; }
+}
+
+/* ── EAR ── */
+function lvEAR(lm, p) {
+    var d = function(a,b){ return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); };
+    return (d(p[1],p[5]) + d(p[2],p[4])) / (2*d(p[0],p[3]));
+}
+
+/* ── MAR ── */
+function lvMAR(lm) {
+    var d = function(a,b){ return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); };
+    return (d(82,87) + d(13,14) + d(312,317)) / (3*d(61,291));
+}
+
+/* ── รับผล FaceMesh ── */
+function lvOnResults(res) {
+    if (!_lv.active || _lv.passed) return;
+    if (!res.multiFaceLandmarks || !res.multiFaceLandmarks.length) return;
+    var lm  = res.multiFaceLandmarks[0];
+    var ear = (lvEAR(lm,[362,385,387,263,373,380]) + lvEAR(lm,[33,160,158,133,153,144])) / 2;
+    var mar = lvMAR(lm);
+    var doing = (_lv.challenge === 'blink') ? (ear < LV_EAR_CLOSE) : (mar > LV_MAR_OPEN);
+    if (doing) {
+        if (_lv.challenge === 'blink') _lv.blinkF++; else _lv.mouthF++;
+        var f = (_lv.challenge === 'blink') ? _lv.blinkF : _lv.mouthF;
+        if (f >= LV_FRAMES && !_lv.inAction) {
+            _lv.inAction = true;
+            _lv.blinkF = 0; _lv.mouthF = 0;
+            _lv.count++;
+            var ch = document.getElementById('fvLivenessChallenge');
+            if (_lv.count >= _lv.need) {
+                lvPass();
+            } else {
+                if (ch) ch.textContent = LV_TEXT[_lv.challenge] + ' (' + _lv.count + '/' + _lv.need + ')';
+                fvSetStatus('loading','🔍','ทำแล้ว '+_lv.count+'/'+_lv.need+' ครั้ง — ทำต่อเลย!');
+            }
+        }
+    } else {
+        if (_lv.inAction) { _lv.inAction = false; _lv.blinkF = 0; _lv.mouthF = 0; }
+    }
+}
+
+/* ── โหลด MediaPipe ── */
+function lvLoad(cb) {
+    if (_lv.loaded) { cb(); return; }
+    if (_lv.loading) { var w=setInterval(function(){ if(_lv.loaded){clearInterval(w);cb();} },200); return; }
+    _lv.loading = true;
+    function loadScript(url, next) {
+        var s = document.createElement('script'); s.src = url;
+        s.onload = next; s.onerror = next; document.head.appendChild(s);
+    }
+    loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js', function(){
+        if (typeof FaceMesh !== 'undefined') {
+            _lv.mesh = new FaceMesh({ locateFile: function(f){ return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/'+f; }});
+            _lv.mesh.setOptions({ maxNumFaces:1, refineLandmarks:true, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+            _lv.mesh.onResults(lvOnResults);
+            _lv.mesh.initialize().then(function(){ _lv.loaded=true; _lv.loading=false; cb(); })
+                                 .catch(function(){ _lv.loaded=true; _lv.loading=false; cb(); });
+        } else { _lv.loaded=true; _lv.loading=false; cb(); }
+    });
+}
+
+/* ── ส่ง frame ── */
+function lvSendFrame() {
+    if (!_lv.active || !_lv.mesh) return;
+    var v = document.getElementById('fvVideo');
+    if (v && v.readyState >= 2) _lv.mesh.send({ image: v }).catch(function(){});
+}
+
+/* ── เริ่ม Action challenge ── */
+function lvStart() {
+    _lv.challenge = LV_ACTIONS[Math.floor(Math.random()*LV_ACTIONS.length)];
+    _lv.active = true; _lv.passed = false;
+    _lv.count = 0; _lv.inAction = false; _lv.blinkF = 0; _lv.mouthF = 0;
+    var ov = document.getElementById('fvLivenessOverlay');
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    var fg = document.getElementById('fvFaceGuide');
+    if (ov) ov.style.display = 'flex';
+    if (fg) fg.className = 'fv-face-guide';
+    if (ch) { ch.textContent = LV_TEXT[_lv.challenge]+' (0/'+_lv.need+')'; ch.className = 'fv-liveness-challenge'; }
+    if (tf) { tf.style.transition='none'; tf.style.width='100%'; tf.style.background='#4ade80'; }
+    setTimeout(function(){ if(tf){ tf.style.transition='width '+(_lv.timeLimit/1000)+'s linear'; tf.style.width='0%'; } }, 50);
+    fvSetStatus('loading','🔍', LV_TEXT[_lv.challenge]+' ให้ครบ '+_lv.need+' ครั้ง ('+_lv.timeLimit/1000+' วิ)');
+    _lv.detLoop = setInterval(lvSendFrame, 100);
+    _lv.timer   = setTimeout(function(){ if(!_lv.passed) lvFail(); }, _lv.timeLimit);
+}
+
+/* ── ผ่าน ── */
+function lvPass() {
+    if (_lv.passed) return;
+    _lv.passed = true; _lv.active = false;
+    clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    var fg = document.getElementById('fvFaceGuide');
+    if (ch) { ch.textContent = '✅ ยืนยันตัวตนสำเร็จ!'; ch.className = 'fv-liveness-challenge success'; }
+    if (tf) { tf.style.transition='none'; tf.style.width='100%'; tf.style.background='#4ade80'; }
+    if (fg) fg.className = 'fv-face-guide lv-ok';
+    fvSetStatus('loading','✅','ผ่านการยืนยัน — กำลังบันทึก...');
+    setTimeout(function(){
+        var ov = document.getElementById('fvLivenessOverlay');
+        if (ov) ov.style.display = 'none';
+        if (fg) fg.className = 'fv-face-guide';
+        // บันทึกภาพที่ถ่ายไว้แล้ว (fvCapture จริง = GPS + GAS)
+        fvCapture();
+    }, 600);
+}
+
+/* ── ไม่ผ่าน ── */
+function lvFail() {
+    _lv.active = false;
+    clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
+    var ch = document.getElementById('fvLivenessChallenge');
+    var tf = document.getElementById('fvLivenessTimerFill');
+    var fg = document.getElementById('fvFaceGuide');
+    if (ch) { ch.textContent = '⏱️ หมดเวลา — กดถ่ายใหม่'; ch.className = 'fv-liveness-challenge fail'; }
+    if (tf) { tf.style.transition='none'; tf.style.width='0%'; tf.style.background='#ef4444'; }
+    if (fg) fg.className = 'fv-face-guide lv-fail';
+    fvSetStatus('error','⚠️','หมดเวลา — กดปุ่ม "ถ่ายภาพ" เพื่อลองใหม่');
+    document.getElementById('fvBtnCapture').disabled = false;
+    setTimeout(function(){
+        lvReset();
+        fvSetStatus('loading','📷','กล้องพร้อม — กด "ถ่ายภาพ" เพื่อเริ่มใหม่');
+    }, 1800);
+}
+
+/* ── Entry point: กดปุ่ม "ถ่ายภาพ" ──
+   Flow: Capture snapshot ทันที (หน้าตรง) → แสดง preview → เริ่ม Action
+   ถ้า Action ผ่าน → fvCapture() จริง (GPS+บันทึก)
+   ถ้า Action ไม่ผ่าน → ล้าง preview → กลับกล้อง              */
+function fvStartLiveness() {
+    document.getElementById('fvBtnCapture').disabled = true;
+
+    // ── ถ่าย snapshot เก็บไว้ใน offscreen canvas ──
+    var video   = document.getElementById('fvVideo');
+    var canvas  = document.getElementById('fvCanvas');
+    if (!video || !video.videoWidth) {
+        fvSetStatus('error','⚠️','กล้องยังไม่พร้อม');
+        document.getElementById('fvBtnCapture').disabled = false;
+        return;
+    }
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    ctx.restore();
+
+    // Timestamp บนภาพ snapshot
+    var now  = new Date();
+    var pad  = function(n){ return n<10?'0'+n:''+n; };
+    var stamp= pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+'  '
+              +pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+    var tsF  = Math.max(18, Math.round(canvas.width*0.048));
+    var tsP  = Math.round(tsF*0.5);
+    var tsH  = tsF+tsP*2;
+    ctx.fillStyle='rgba(0,0,0,0.30)'; ctx.fillRect(0,0,canvas.width,tsH);
+    ctx.font=tsF+'px monospace'; ctx.fillStyle='#ffffff'; ctx.textBaseline='middle';
+    ctx.fillText('\u23F1 '+stamp, tsP, tsH/2);
+
+    // แสดง preview snapshot ทันที (กล้องยังทำงานอยู่)
+    document.getElementById('fvPreviewArea').classList.add('active');
+    document.getElementById('fvPreviewBadge').textContent = stamp;
+
+    fvSetStatus('loading','🔍','ภาพถ่ายแล้ว — กรุณาทำ Action ให้ผ่าน');
+
+    // โหลด MediaPipe แล้วเริ่ม Action
+    lvLoad(function(){
+        if (!_lv.loaded || typeof FaceMesh === 'undefined') {
+            // MediaPipe โหลดไม่ได้ → ใช้ภาพ snapshot แล้วบันทึกเลย
+            fvCapture();
+            return;
+        }
+        lvStart();
+    });
+}
+
+/* ── ถ่ายใหม่ (reset Liveness + preview) ── */
+function fvLvRetake() {
+    lvReset();
+    fvVerified = false; fvDataUrl = '';
+    fvHideIframeLoading();
+    document.getElementById('fvPreviewArea').classList.remove('active');
+    document.getElementById('fvBtnRetake').style.display = 'none';
+    fvSetStatus('idle','🎥','กดปุ่มเพื่อเปิดกล้องและถ่ายภาพยืนยัน');
+    document.getElementById('fvBtnOpen').disabled    = false;
+    document.getElementById('fvBtnCapture').disabled = true;
+    fvUpdateOverlay();
+}
 
 </script>
 </body>
