@@ -539,6 +539,8 @@ function fvOpenCamera() {
     _lvBlinkFrames = 0;
     _lvMouthFrames = 0;
     _lvSmileFrames = 0;
+    _lvActionCount = 0;
+    _lvInAction    = false;
     clearInterval(_lvDetectLoop);
     clearTimeout(_lvTimerRaf);
     var _ov = document.getElementById('fvLivenessOverlay');
@@ -800,6 +802,9 @@ var _lvTimeLimit    = 7000;   // 7 วินาที
 var _lvBlinkFrames  = 0;      // frame นับ eye closed
 var _lvMouthFrames  = 0;      // frame นับ mouth open
 var _lvSmileFrames  = 0;      // frame นับ smile
+var _lvActionCount  = 0;      // นับจำนวนครั้งที่ทำ action สำเร็จ
+var _lvActionNeed   = 3;      // ต้องทำกี่ครั้งจึงผ่าน
+var _lvInAction     = false;  // กำลังอยู่ใน action (ป้องกันนับซ้ำ)
 
 // threshold ปรับได้
 var LV_EAR_CLOSE    = 0.22;   // eye aspect ratio ต่ำกว่านี้ = หลับตา
@@ -890,24 +895,65 @@ function lvOnResults(results) {
 
     var lm = results.multiFaceLandmarks[0];
 
-    // Left eye: 362,385,387,263,373,380  Right eye: 33,160,158,133,153,144
     var earL = lvEAR(lm, [362,385,387,263,373,380]);
     var earR = lvEAR(lm, [33,160,158,133,153,144]);
     var ear  = (earL + earR) / 2;
     var mar  = lvMAR(lm);
     var smR  = lvSmileRatio(lm);
 
+    var isDoingAction = false;
+
     if (_lvChallenge === 'blink') {
-        if (ear < LV_EAR_CLOSE) { _lvBlinkFrames++; } else { if (_lvBlinkFrames > 0) _lvBlinkFrames = 0; }
-        if (_lvBlinkFrames >= LV_FRAMES_NEED) lvPass();
-
+        isDoingAction = (ear < LV_EAR_CLOSE);
     } else if (_lvChallenge === 'mouth') {
-        if (mar > LV_MAR_OPEN) { _lvMouthFrames++; } else { _lvMouthFrames = 0; }
-        if (_lvMouthFrames >= LV_FRAMES_NEED) lvPass();
-
+        isDoingAction = (mar > LV_MAR_OPEN);
     } else if (_lvChallenge === 'smile') {
-        if (smR > LV_SMILE_RATIO) { _lvSmileFrames++; } else { _lvSmileFrames = 0; }
-        if (_lvSmileFrames >= LV_FRAMES_NEED) lvPass();
+        isDoingAction = (smR > LV_SMILE_RATIO);
+    }
+
+    if (isDoingAction) {
+        // สะสม frame ขณะทำ action
+        if (_lvChallenge === 'blink')  _lvBlinkFrames++;
+        if (_lvChallenge === 'mouth')  _lvMouthFrames++;
+        if (_lvChallenge === 'smile')  _lvSmileFrames++;
+
+        var frames = (_lvChallenge === 'blink') ? _lvBlinkFrames
+                   : (_lvChallenge === 'mouth') ? _lvMouthFrames
+                   : _lvSmileFrames;
+
+        // ถึง threshold → นับ 1 ครั้ง
+        if (frames >= LV_FRAMES_NEED && !_lvInAction) {
+            _lvInAction    = true;  // ล็อกไม่ให้นับซ้ำในครั้งเดียวกัน
+            _lvActionCount++;
+
+            // reset frame counter รอรับ action ครั้งถัดไป
+            _lvBlinkFrames = 0;
+            _lvMouthFrames = 0;
+            _lvSmileFrames = 0;
+
+            // อัปเดต UI แสดงความคืบหน้า
+            var ch = document.getElementById('fvLivenessChallenge');
+            if (_lvActionCount >= _lvActionNeed) {
+                // ครบ 3 ครั้ง → ผ่าน
+                lvPass();
+            } else {
+                // ยังไม่ครบ → แสดงจำนวนที่ทำไปแล้ว
+                if (ch) {
+                    ch.textContent = LV_TEXTS[_lvChallenge] +
+                        '  (' + _lvActionCount + '/' + _lvActionNeed + ')';
+                }
+                fvSetStatus('loading', '🔍',
+                    'ทำแล้ว ' + _lvActionCount + '/' + _lvActionNeed + ' ครั้ง — ทำต่อเลย!');
+            }
+        }
+    } else {
+        // หน้ากลับสู่ท่าปกติ → ปลดล็อกให้นับครั้งถัดไปได้
+        if (_lvInAction) {
+            _lvInAction    = false;
+            _lvBlinkFrames = 0;
+            _lvMouthFrames = 0;
+            _lvSmileFrames = 0;
+        }
     }
 }
 
@@ -929,6 +975,8 @@ function lvStart() {
     _lvBlinkFrames = 0;
     _lvMouthFrames = 0;
     _lvSmileFrames = 0;
+    _lvActionCount = 0;      // ✅ reset จำนวนครั้ง
+    _lvInAction    = false;  // ✅ reset สถานะ action
     _lvTimeStart   = Date.now();
 
     // แสดง overlay
@@ -936,13 +984,16 @@ function lvStart() {
     var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
     if (ov) ov.style.display = 'flex';
-    if (ch) { ch.textContent = LV_TEXTS[_lvChallenge]; ch.className = 'fv-liveness-challenge'; }
+    if (ch) {
+        ch.textContent = LV_TEXTS[_lvChallenge] + '  (0/' + _lvActionNeed + ')';
+        ch.className = 'fv-liveness-challenge';
+    }
     if (tf) { tf.style.width = '100%'; tf.style.background = '#4ade80'; tf.style.transition = 'none'; }
 
     // ล็อกปุ่ม Capture ระหว่าง challenge
     document.getElementById('fvBtnCapture').disabled = true;
 
-    fvSetStatus('loading', '🔍', 'กรุณา ' + LV_TEXTS[_lvChallenge]);
+    fvSetStatus('loading', '🔍', LV_TEXTS[_lvChallenge] + ' ให้ครบ ' + _lvActionNeed + ' ครั้ง');
 
     // timer bar animation
     setTimeout(function(){
@@ -1186,6 +1237,8 @@ function fvRetake() {
     _lvBlinkFrames = 0;
     _lvMouthFrames = 0;
     _lvSmileFrames = 0;
+    _lvActionCount = 0;
+    _lvInAction    = false;
     clearInterval(_lvDetectLoop);
     clearTimeout(_lvTimerRaf);
 
