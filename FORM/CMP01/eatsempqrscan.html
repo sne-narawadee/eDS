@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 2) โหลด iframe
     var params = new URLSearchParams(window.location.search);
-    var GAS_URL = 'https://script.google.com/macros/s/AKfycbwpo5uPXo1yP16-vc0T2dOOiAg5p6sDMOhl7a2JoW3WDGT8-OZngi-b5nOyMhmiS5mD/exec';
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
     var query         = [];
     var page          = params.get('page');
@@ -614,7 +614,7 @@ function fvDoCache(retryCount) {
     // ✅ Fix: ใช้ fvGasBaseUrl แทน hardcode URL เพื่อป้องกัน URL mismatch
     var GAS_EXEC_URL = fvGasBaseUrl
         ? fvGasBaseUrl.replace(/[?&]fvKey=[^&]*/g, '').replace(/&&/g, '&').replace(/[?&]$/, '')
-        : 'https://script.google.com/macros/s/AKfycbwpo5uPXo1yP16-vc0T2dOOiAg5p6sDMOhl7a2JoW3WDGT8-OZngi-b5nOyMhmiS5mD/exec';
+        : 'https://script.google.com/macros/s/AKfycbxQktYn2Z5V_TQT_Kc_Ui9U6LoekMUaWBmwGmesS2T-_OgbOWG-wahxZZPwoR-aZ5Gr/exec';
 
     // Guard: ถ้า fvDataUrl ว่าง อย่าส่ง
     if (!fvDataUrl || fvDataUrl.length < 100) {
