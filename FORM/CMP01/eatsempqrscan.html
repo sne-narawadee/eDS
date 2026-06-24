@@ -1205,75 +1205,34 @@ function fvCommitCapture() {
     _fvPendingGpsFn = null;
 }
 
-    // ── วาด GPS bar + cache ครั้งเดียว ──
-    function doDrawAndCache(useLat, useLng, addr) {
-        fvDrawGpsBar(canvas, ctx, gpsFontSize, gpsPadding, gpsBarH, useLat, useLng, addr || '');
-        fvDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-        console.log('Ready size:', Math.round(fvDataUrl.length/1024), 'KB',
-                    useLat ? 'GPS:' + useLat : 'no GPS',
-                    addr   ? 'addr:ok' : 'no addr');
-        fvDoCache();
-    }
+/* Reverse Geocode ผ่าน Nominatim */
+function fvReverseGeocode(lat, lng, callback) {
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=th',
+          { headers: { 'Accept-Language': 'th' } })
+        .then(function(r) { return r.json(); })
+        .then(function(geo) { callback(geo.display_name || ''); })
+        .catch(function()   { callback(''); });
+}
 
-    function fvFinalizeAndCache(lat, lng) {
-        // ใช้ cached GPS เสมอถ้า param ว่าง (race condition)
-        var useLat = (lat && lat !== '') ? lat : fvCachedLat;
-        var useLng = (lng && lng !== '') ? lng : fvCachedLng;
-
-        if (useLat && useLng) {
-            var done  = false;
-            var timer = setTimeout(function() {
-                if (done) return;
-                done = true;
-                console.warn('Nominatim timeout — cache without address');
-                doDrawAndCache(useLat, useLng, '');
-            }, 4000);
-
-            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + useLat + '&lon=' + useLng + '&accept-language=th',
-                  { headers: { 'Accept-Language': 'th' } })
-                .then(function(r) { return r.json(); })
-                .then(function(geo) {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    doDrawAndCache(useLat, useLng, geo.display_name || '');
-                })
-                .catch(function() {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    doDrawAndCache(useLat, useLng, '');
-                });
-        } else {
-            doDrawAndCache('', '', '');
-        }
-    }
-
-    // ── ใช้ GPS cache หรือรอ preload ──
-    function fvProceedWithCachedGps() {
-        if (fvCachedLat && fvCachedLng) {
-            fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-        } else if (!fvGpsReady) {
-            // preload ยังไม่เสร็จ — poll รอ
-            var waitGps = setInterval(function() {
-                if (fvGpsReady) {
-                    clearInterval(waitGps);
-                    fvFinalizeAndCache(fvCachedLat, fvCachedLng);
-                }
-            }, 300);
-            setTimeout(function() {
+/* ใช้ GPS cache หรือรอ preload */
+function fvProceedWithCachedGps(fvFinalizeAndCache) {
+    if (fvCachedLat && fvCachedLng) {
+        fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+    } else if (!fvGpsReady) {
+        var waitGps = setInterval(function() {
+            if (fvGpsReady) {
                 clearInterval(waitGps);
-                // ✅ Fix: mark fvGpsReady=true เพื่อป้องกัน interval ยิงหลัง timeout
-                fvGpsReady = true;
-                fvFinalizeAndCache('', '');
-            }, 16000);
-        } else {
-            // GPS ไม่ได้เลย
+                fvFinalizeAndCache(fvCachedLat, fvCachedLng);
+            }
+        }, 300);
+        setTimeout(function() {
+            clearInterval(waitGps);
+            fvGpsReady = true;
             fvFinalizeAndCache('', '');
-        }
+        }, 16000);
+    } else {
+        fvFinalizeAndCache('', '');
     }
-
-    fvProceedWithCachedGps();
 }
 
 /* ══════════════════════════════════════
