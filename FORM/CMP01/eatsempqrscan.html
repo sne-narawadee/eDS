@@ -994,52 +994,34 @@ function lvMAR(lm) {
     return (d(82,87) + d(13,14) + d(312,317)) / (3*d(61,291));
 }
 
-/* ── นับนิ้วที่เหยียด (Hand Landmark 21 จุด) ──
-   นิ้วชี้-ก้อย: TIP.y < PIP.y = เหยียด
-   นิ้วโป้ง:     TIP.x < IP.x (มือขวา) หรือ TIP.x > IP.x (มือซ้าย) */
+/* finger count: TIP.y < MCP.y = extended */
 function lvCountFingers(hand) {
-    if (!hand || hand.length < 21) return 0;
+    if (!hand || hand.length < 21) return -1;
     var count = 0;
-    /* นิ้วชี้=8,กลาง=12,นาง=16,ก้อย=20  PIP=6,10,14,18 */
-    var tips = [8,12,16,20];
-    var pips = [6,10,14,18];
-    for (var i=0; i<tips.length; i++) {
-        if (hand[tips[i]].y < hand[pips[i]].y) count++;
+    var tips = [8, 12, 16, 20];
+    var mcps = [5,  9, 13, 17];
+    for (var i = 0; i < tips.length; i++) {
+        if (hand[tips[i]].y < hand[mcps[i]].y) count++;
     }
-    /* นิ้วโป้ง: TIP=4 IP=3 MCP=2 */
-    var thumbOpen = Math.abs(hand[4].x - hand[2].x) > Math.abs(hand[3].x - hand[2].x);
-    if (thumbOpen) count++;
+    /* thumb: TIP(4) farther from WRIST(0) than IP(3) */
+    var d = function(a,b){ return Math.hypot(hand[a].x-hand[b].x, hand[a].y-hand[b].y); };
+    if (d(4,0) > d(3,0) * 1.1) count++;
     return count;
 }
 
-/* ── รับผล FaceMesh ── */
-function lvOnFaceResults(res) {
-    if (!_lv.active || _lv.passed) return;
-    if (_lv.challenge !== 'blink' && _lv.challenge !== 'mouth') return;
-    if (!res.multiFaceLandmarks || !res.multiFaceLandmarks.length) return;
-    var lm  = res.multiFaceLandmarks[0];
-    var ear = (lvEAR(lm,[362,385,387,263,373,380]) + lvEAR(lm,[33,160,158,133,153,144])) / 2;
-    var mar = lvMAR(lm);
-    var doing = (_lv.challenge === 'blink') ? (ear < LV_EAR_CLOSE) : (mar > LV_MAR_OPEN);
-    if (doing) {
-        if (_lv.challenge === 'blink') _lv.blinkF++; else _lv.mouthF++;
-        var f = (_lv.challenge === 'blink') ? _lv.blinkF : _lv.mouthF;
-        if (f >= LV_FRAMES && !_lv.inAction) { _lv.inAction=true; _lv.blinkF=0; _lv.mouthF=0; lvCountAction(); }
-    } else {
-        if (_lv.inAction) { _lv.inAction=false; _lv.blinkF=0; _lv.mouthF=0; }
-    }
-}
-
-/* ── รับผล Hands ── */
+/* hand results */
 function lvOnHandResults(res) {
     if (!_lv.active || _lv.passed) return;
     if (_lv.challenge.charAt(0) !== 'f') return;
     if (!res.multiHandLandmarks || !res.multiHandLandmarks.length) {
-        _lv.fingerF = 0; return;
+        _lv.fingerF = 0;
+        if (_lv.inAction) _lv.inAction = false;
+        return;
     }
-    var need   = parseInt(_lv.challenge.charAt(1)); // 1-5
+    var need   = parseInt(_lv.challenge.charAt(1));
     var hand   = res.multiHandLandmarks[0];
     var actual = lvCountFingers(hand);
+    console.log('Fingers:', actual, '| Need:', need, '| Frame:', _lv.fingerF);
     if (actual === need) {
         _lv.fingerF++;
         if (_lv.fingerF >= LV_FFRAMES && !_lv.inAction) {
@@ -1050,6 +1032,7 @@ function lvOnHandResults(res) {
         if (_lv.inAction) _lv.inAction = false;
     }
 }
+
 
 /* ── นับ action ที่ทำสำเร็จ ── */
 function lvCountAction() {
