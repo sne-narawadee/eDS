@@ -951,7 +951,7 @@ var _lv = {
 /* threshold */
 var LV_EAR_CLOSE = 0.22;
 var LV_MAR_OPEN  = 0.35;
-var LV_FFRAMES   = 4;   // frame ติดกันสำหรับนิ้ว (เพิ่มขึ้นเล็กน้อยเพื่อความแม่นยำ)
+var LV_FFRAMES   = 2;   // frame ติดกันสำหรับนิ้ว
 var LV_FRAMES    = 3;   // frame ติดกันสำหรับตา/ปาก
 
 /* action pool */
@@ -994,34 +994,48 @@ function lvMAR(lm) {
     return (d(82,87) + d(13,14) + d(312,317)) / (3*d(61,291));
 }
 
-/* finger count: TIP.y < MCP.y = extended */
+/* ── นับนิ้ว (MediaPipe Hands 21 landmark) ──
+   ใช้ระยะ 3D จาก WRIST เพื่อหลีกเลี่ยงปัญหา mirror/orientation
+   นิ้วเหยียด = TIP ห่างจาก WRIST มากกว่า PIP ห่างจาก WRIST */
 function lvCountFingers(hand) {
     if (!hand || hand.length < 21) return -1;
+    var d = function(a, b) {
+        return Math.hypot(hand[a].x - hand[b].x, hand[a].y - hand[b].y);
+    };
     var count = 0;
-    var tips = [8, 12, 16, 20];
-    var mcps = [5,  9, 13, 17];
+
+    /* นิ้วชี้=8/PIP=6, กลาง=12/PIP=10, นาง=16/PIP=14, ก้อย=20/PIP=18
+       เหยียด = TIP ห่าง WRIST(0) มากกว่า PIP ห่าง WRIST(0) */
+    var tips = [8,  12, 16, 20];
+    var pips = [6,  10, 14, 18];
     for (var i = 0; i < tips.length; i++) {
-        if (hand[tips[i]].y < hand[mcps[i]].y) count++;
+        if (d(tips[i], 0) > d(pips[i], 0)) count++;
     }
-    /* thumb: TIP(4) farther from WRIST(0) than IP(3) */
-    var d = function(a,b){ return Math.hypot(hand[a].x-hand[b].x, hand[a].y-hand[b].y); };
-    if (d(4,0) > d(3,0) * 1.1) count++;
+
+    /* นิ้วโป้ง = TIP(4) ห่าง WRIST(0) มากกว่า IP(3) ห่าง WRIST(0) */
+    if (d(4, 0) > d(3, 0)) count++;
+
     return count;
 }
 
-/* hand results */
+/* ── Hand results ── */
 function lvOnHandResults(res) {
     if (!_lv.active || _lv.passed) return;
     if (_lv.challenge.charAt(0) !== 'f') return;
+
     if (!res.multiHandLandmarks || !res.multiHandLandmarks.length) {
         _lv.fingerF = 0;
         if (_lv.inAction) _lv.inAction = false;
         return;
     }
+
     var need   = parseInt(_lv.challenge.charAt(1));
     var hand   = res.multiHandLandmarks[0];
     var actual = lvCountFingers(hand);
+
+    /* debug log */
     console.log('Fingers:', actual, '| Need:', need, '| Frame:', _lv.fingerF);
+
     if (actual === need) {
         _lv.fingerF++;
         if (_lv.fingerF >= LV_FFRAMES && !_lv.inAction) {
@@ -1032,6 +1046,7 @@ function lvOnHandResults(res) {
         if (_lv.inAction) _lv.inAction = false;
     }
 }
+
 
 
 /* ── นับ action ที่ทำสำเร็จ ── */
