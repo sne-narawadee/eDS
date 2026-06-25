@@ -878,7 +878,8 @@ var _lv = {
     loading    : false,
     active  : false, passed : false,
     challenge : '', count : 0, need : 2, inAction : false,
-    blinkF : 0, mouthF : 0, turnF : 0, turnLock : false,
+    blinkF : 0, mouthF : 0, turnF : 0,
+    blinkLock : false, mouthLock : false, turnLock : false,
     detLoop : null, timer : null, timeLimit : 8000
 };
 
@@ -903,7 +904,8 @@ var LV_TEXT    = {
 function lvReset() {
     _lv.active = false; _lv.passed = false;
     _lv.challenge = ''; _lv.count = 0; _lv.inAction = false;
-    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0; _lv.turnLock = false;
+    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
+    _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
     clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
     var ov = document.getElementById('fvLivenessOverlay');
     var fg = document.getElementById('fvFaceGuide');
@@ -967,13 +969,21 @@ function lvOnFaceResults(res) {
     /* ── กระพริบตา ── */
     if (ch === 'blink') {
         var ear = (lvEAR(lm,[362,385,387,263,373,380]) + lvEAR(lm,[33,160,158,133,153,144])) / 2;
-        if (ear < LV_EAR_CLOSE) {
+        /* ปลด lock เมื่อลืมตากลับแล้ว (EAR สูงกว่า threshold ชัดเจน) */
+        if (_lv.blinkLock && ear > LV_EAR_CLOSE + 0.06) {
+            _lv.blinkLock = false;
+            _lv.inAction  = false;
+            _lv.blinkF    = 0;
+        }
+        if (ear < LV_EAR_CLOSE && !_lv.blinkLock) {
             _lv.blinkF++;
             if (_lv.blinkF >= LV_FRAMES && !_lv.inAction) {
-                _lv.inAction = true; _lv.blinkF = 0; lvCountAction();
+                _lv.inAction  = true;
+                _lv.blinkLock = true;  /* ล็อค รอลืมตากลับ */
+                _lv.blinkF    = 0;
+                lvCountAction();
             }
-        } else {
-            if (_lv.inAction) { _lv.inAction = false; }
+        } else if (!_lv.blinkLock) {
             _lv.blinkF = 0;
         }
         return;
@@ -982,13 +992,21 @@ function lvOnFaceResults(res) {
     /* ── อ้าปาก ── */
     if (ch === 'mouth') {
         var mar = lvMAR(lm);
-        if (mar > LV_MAR_OPEN) {
+        /* ปลด lock เมื่อปิดปากกลับแล้ว */
+        if (_lv.mouthLock && mar < LV_MAR_OPEN - 0.08) {
+            _lv.mouthLock = false;
+            _lv.inAction  = false;
+            _lv.mouthF    = 0;
+        }
+        if (mar > LV_MAR_OPEN && !_lv.mouthLock) {
             _lv.mouthF++;
             if (_lv.mouthF >= LV_FRAMES && !_lv.inAction) {
-                _lv.inAction = true; _lv.mouthF = 0; lvCountAction();
+                _lv.inAction  = true;
+                _lv.mouthLock = true;  /* ล็อค รอปิดปากกลับ */
+                _lv.mouthF    = 0;
+                lvCountAction();
             }
-        } else {
-            if (_lv.inAction) { _lv.inAction = false; }
+        } else if (!_lv.mouthLock) {
             _lv.mouthF = 0;
         }
         return;
@@ -1087,7 +1105,8 @@ function lvStart() {
     _lv.challenge = LV_ACTIONS[Math.floor(Math.random()*LV_ACTIONS.length)];
     _lv.active = true; _lv.passed = false;
     _lv.count = 0; _lv.inAction = false;
-    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0; _lv.turnLock = false;
+    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
+    _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
     var ov = document.getElementById('fvLivenessOverlay');
     var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
