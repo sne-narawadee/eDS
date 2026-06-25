@@ -880,15 +880,19 @@ var _lv = {
     challenge : '', count : 0, need : 2, inAction : false,
     blinkF : 0, mouthF : 0, turnF : 0,
     blinkLock : false, mouthLock : false, turnLock : false,
+    earBaseline : 0, earSamples : [],
     detLoop : null, timer : null, timeLimit : 8000
 };
 
 /* ── threshold ── */
-var LV_EAR_CLOSE    = 0.22;  /* EAR ต่ำกว่านี้ = หลับตา                       */
+/* ── threshold ── */
+var LV_EAR_CLOSE    = 0.22;  /* EAR สำรอง (ถ้า baseline ยังไม่พร้อม)          */
+var LV_EAR_RATIO    = 0.65;  /* EAR ลดลงเหลือ < baseline * ratio = หลับตา     */
 var LV_MAR_OPEN     = 0.35;  /* MAR สูงกว่านี้ = อ้าปาก                        */
-var LV_YAW_THRESH   = 0.18;  /* offset > นี้ = หันหน้า (ต้องหันชัดพอ)          */
-var LV_YAW_CENTER   = 0.06;  /* offset < นี้ = กลับมาหน้าตรงแล้ว (reset lock) */
-var LV_FRAMES       = 3;     /* frame ติดกัน ตา/ปาก                            */
+var LV_YAW_THRESH   = 0.18;  /* offset > นี้ = หันหน้า                         */
+var LV_YAW_CENTER   = 0.06;  /* offset < นี้ = กลับมาหน้าตรงแล้ว              */
+var LV_BLINK_FRAMES = 2;     /* frame ติดกัน กระพริบตา (สั้น เร็ว)            */
+var LV_FRAMES       = 3;     /* frame ติดกัน ปาก/ทั่วไป                        */
 var LV_TURN_FRAMES  = 5;     /* frame ติดกัน หันหน้า                           */
 
 /* ── action pool: ตา / ปาก / ซ้าย / ขวา ── */
@@ -906,6 +910,7 @@ function lvReset() {
     _lv.challenge = ''; _lv.count = 0; _lv.inAction = false;
     _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
     _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
+    _lv.earBaseline = 0; _lv.earSamples = [];
     clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
     var ov = document.getElementById('fvLivenessOverlay');
     var fg = document.getElementById('fvFaceGuide');
@@ -917,10 +922,19 @@ function lvReset() {
     if (tf) { tf.style.transition = 'none'; tf.style.width = '100%'; tf.style.background = '#4ade80'; }
 }
 
-/* ── EAR ── */
-function lvEAR(lm, p) {
-    var d = function(a,b){ return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); };
-    return (d(p[1],p[5]) + d(p[2],p[4])) / (2*d(p[0],p[3]));
+/* ── EAR (Eye Aspect Ratio) — refined FaceMesh 478 จุด ──
+ * ตาซ้าย (จากมุมมองคนดู):  outer=33, inner=133, top1=159, top2=158, bot1=145, bot2=153
+ * ตาขวา (จากมุมมองคนดู): outer=362, inner=263, top1=386, top2=385, bot1=374, bot2=380
+ * EAR = (||p2-p6|| + ||p3-p5||) / (2 * ||p1-p4||)
+ */
+function lvEAR_eye(lm, outer, inner, top1, top2, bot1, bot2) {
+    var d = function(a,b) { return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); };
+    return (d(top1,bot1) + d(top2,bot2)) / (2 * d(outer,inner));
+}
+function lvEAR(lm) {
+    var left  = lvEAR_eye(lm, 33,  133, 159, 158, 145, 153);
+    var right = lvEAR_eye(lm, 362, 263, 386, 385, 374, 380);
+    return (left + right) / 2;
 }
 
 /* ── MAR ── */
@@ -1107,6 +1121,7 @@ function lvStart() {
     _lv.count = 0; _lv.inAction = false;
     _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
     _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
+    _lv.earBaseline = 0; _lv.earSamples = [];
     var ov = document.getElementById('fvLivenessOverlay');
     var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
