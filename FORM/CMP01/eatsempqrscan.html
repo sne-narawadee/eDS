@@ -878,16 +878,17 @@ var _lv = {
     loading    : false,
     active  : false, passed : false,
     challenge : '', count : 0, need : 2, inAction : false,
-    blinkF : 0, mouthF : 0, turnF : 0,
+    blinkF : 0, mouthF : 0, turnF : 0, turnLock : false,
     detLoop : null, timer : null, timeLimit : 8000
 };
 
 /* ── threshold ── */
-var LV_EAR_CLOSE   = 0.22;   /* EAR ต่ำกว่านี้ = หลับตา          */
-var LV_MAR_OPEN    = 0.35;   /* MAR สูงกว่านี้ = อ้าปาก           */
-var LV_YAW_THRESH  = 0.14;   /* offset > นี้ = หันหน้า (normalized) */
-var LV_FRAMES      = 3;      /* frame ติดกัน ตา/ปาก               */
-var LV_TURN_FRAMES = 5;      /* frame ติดกัน หันหน้า              */
+var LV_EAR_CLOSE    = 0.22;  /* EAR ต่ำกว่านี้ = หลับตา                       */
+var LV_MAR_OPEN     = 0.35;  /* MAR สูงกว่านี้ = อ้าปาก                        */
+var LV_YAW_THRESH   = 0.18;  /* offset > นี้ = หันหน้า (ต้องหันชัดพอ)          */
+var LV_YAW_CENTER   = 0.06;  /* offset < นี้ = กลับมาหน้าตรงแล้ว (reset lock) */
+var LV_FRAMES       = 3;     /* frame ติดกัน ตา/ปาก                            */
+var LV_TURN_FRAMES  = 5;     /* frame ติดกัน หันหน้า                           */
 
 /* ── action pool: ตา / ปาก / ซ้าย / ขวา ── */
 var LV_ACTIONS = ['blink', 'mouth', 'turnLeft', 'turnRight'];
@@ -902,7 +903,7 @@ var LV_TEXT    = {
 function lvReset() {
     _lv.active = false; _lv.passed = false;
     _lv.challenge = ''; _lv.count = 0; _lv.inAction = false;
-    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
+    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0; _lv.turnLock = false;
     clearInterval(_lv.detLoop); clearTimeout(_lv.timer);
     var ov = document.getElementById('fvLivenessOverlay');
     var fg = document.getElementById('fvFaceGuide');
@@ -996,22 +997,35 @@ function lvOnFaceResults(res) {
     /* ── หันหน้าซ้าย/ขวา ── */
     if (ch === 'turnLeft' || ch === 'turnRight') {
         var offset = lvGetYawOffset(lm);
+        var absOff = Math.abs(offset);
         /*
          * กล้อง mirror:
          *   turnLeft  → user หันซ้าย → ใน frame จมูกเลื่อนขวา → offset > 0
          *   turnRight → user หันขวา → ใน frame จมูกเลื่อนซ้าย → offset < 0
+         *
+         * _lv.turnLock = true หลังนับ 1 ครั้ง → ต้องกลับหน้าตรง (absOff < LV_YAW_CENTER)
+         * ก่อนจึงจะนับครั้งถัดไปได้ ป้องกัน false positive จากค้างหน้า
          */
         var isTurning = (ch === 'turnLeft')
             ?  (offset >  LV_YAW_THRESH)
             :  (offset < -LV_YAW_THRESH);
 
-        if (isTurning) {
+        /* ปลด lock เมื่อกลับมาหน้าตรงแล้ว */
+        if (_lv.turnLock && absOff < LV_YAW_CENTER) {
+            _lv.turnLock  = false;
+            _lv.inAction  = false;
+            _lv.turnF     = 0;
+        }
+
+        if (isTurning && !_lv.turnLock) {
             _lv.turnF++;
             if (_lv.turnF >= LV_TURN_FRAMES && !_lv.inAction) {
-                _lv.inAction = true; _lv.turnF = 0; lvCountAction();
+                _lv.inAction  = true;
+                _lv.turnLock  = true;   /* ล็อค รอกลับหน้าตรง */
+                _lv.turnF     = 0;
+                lvCountAction();
             }
-        } else {
-            if (_lv.inAction) { _lv.inAction = false; }
+        } else if (!isTurning && !_lv.turnLock) {
             _lv.turnF = 0;
         }
     }
@@ -1073,7 +1087,7 @@ function lvStart() {
     _lv.challenge = LV_ACTIONS[Math.floor(Math.random()*LV_ACTIONS.length)];
     _lv.active = true; _lv.passed = false;
     _lv.count = 0; _lv.inAction = false;
-    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
+    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0; _lv.turnLock = false;
     var ov = document.getElementById('fvLivenessOverlay');
     var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
