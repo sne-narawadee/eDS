@@ -877,11 +877,13 @@ var _lv = {
     modelsReady: false,
     loading    : false,
     active  : false, passed : false,
-    challenge : '', count : 0, need : 2, inAction : false,
+    challenge : '', sequence : [], step : 0,
+    count : 0, need : 1, inAction : false,
     blinkF : 0, mouthF : 0, turnF : 0,
     blinkLock : false, mouthLock : false, turnLock : false,
     earBaseline : 0, earSamples : [],
-    detLoop : null, timer : null, timeLimit : 8000
+    pairHistory : [],   /* เก็บ pair key เช่น "blink|turnLeft" ไม่ให้ซ้ำข้ามรอบ */
+    detLoop : null, timer : null, timeLimit : 12000
 };
 
 /* ── threshold ── */
@@ -907,7 +909,8 @@ var LV_TEXT    = {
 /* ── reset ── */
 function lvReset() {
     _lv.active = false; _lv.passed = false;
-    _lv.challenge = ''; _lv.count = 0; _lv.inAction = false;
+    _lv.challenge = ''; _lv.sequence = []; _lv.step = 0;
+    _lv.count = 0; _lv.need = 1; _lv.inAction = false;
     _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
     _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
     _lv.earBaseline = 0; _lv.earSamples = [];
@@ -1080,18 +1083,6 @@ function lvOnFaceResults(res) {
     }
 }
 
-/* ── นับ action ที่สำเร็จ ── */
-function lvCountAction() {
-    _lv.count++;
-    var ch = document.getElementById('fvLivenessChallenge');
-    if (_lv.count >= _lv.need) {
-        lvPass();
-    } else {
-        if (ch) ch.textContent = LV_TEXT[_lv.challenge] + ' (' + _lv.count + '/' + _lv.need + ')';
-        fvSetStatus('loading','🔍','ทำแล้ว ' + _lv.count + '/' + _lv.need + ' ครั้ง — ทำต่ออีกครั้ง!');
-    }
-}
-
 /* ── โหลด FaceMesh ── */
 function lvLoad(cb) {
     if (_lv.modelsReady) { cb(); return; }
@@ -1131,28 +1122,113 @@ function lvSendFrame() {
     if (_lv.faceMesh) _lv.faceMesh.send({ image: v }).catch(function(){});
 }
 
+/* ── สุ่ม action 1 ตัว โดยไม่ซ้ำกับ excludes ── */
+function lvPickAction(excludes) {
+    var pool = LV_ACTIONS.filter(function(a) {
+        return excludes.indexOf(a) === -1;
+    });
+    if (!pool.length) pool = LV_ACTIONS.slice();
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ── แสดง UI challenge ปัจจุบัน ── */
+function lvShowChallenge() {
+    var stepNum  = _lv.step + 1;
+    var total    = _lv.sequence.length;
+    var icon     = stepNum === 1 ? '1️⃣' : '2️⃣';
+    var text     = icon + ' ' + LV_TEXT[_lv.challenge];
+    var subtext  = '(ขั้นที่ ' + stepNum + '/' + total + ')';
+    var chEl = document.getElementById('fvLivenessChallenge');
+    if (chEl) { chEl.textContent = text + ' ' + subtext; chEl.className = 'fv-liveness-challenge'; }
+    fvSetStatus('loading', '🔍', text);
+}
+
 /* ── เริ่ม Challenge ── */
 function lvStart() {
-    _lv.challenge = LV_ACTIONS[Math.floor(Math.random()*LV_ACTIONS.length)];
-    _lv.active = true; _lv.passed = false;
-    _lv.count = 0; _lv.inAction = false;
-    _lv.blinkF = 0; _lv.mouthF = 0; _lv.turnF = 0;
+    /*
+     * สุ่ม sequence 2 action โดย:
+     * 1) 2 action ใน sequence ต้องไม่ซ้ำกัน
+     * 2) pair (first+second) ต้องไม่ซ้ำกับ pairHistory ล่าสุด
+     *    (ทั้ง [A,B] และ [B,A] ถือว่าซ้ำกัน เพื่อป้องกันสลับลำดับ)
+     * 3) ถ้าสุ่มไม่ได้เพราะ combination หมด ให้ล้าง history แล้วสุ่มใหม่
+     */
+    var MAX_PAIRS   = LV_ACTIONS.length * (LV_ACTIONS.length - 1); /* 4×3=12 */
+    var winSize     = Math.min(6, MAX_PAIRS - 1); /* จำ 6 pair ล่าสุด */
+    var recentPairs = _lv.pairHistory.slice(-winSize);
+
+    /* หา pair ที่ยังไม่ซ้ำ */
+    var found = false;
+    var first, second, pairKey;
+    var attempts = 0;
+    while (!found && attempts < 50) {
+        attempts++;
+        first   = LV_ACTIONS[Math.floor(Math.random() * LV_ACTIONS.length)];
+        /* second ต้องไม่ซ้ำกับ first */
+        var pool2 = LV_ACTIONS.filter(function(a){ return a !== first; });
+        second  = pool2[Math.floor(Math.random() * pool2.length)];
+        /* key ของ pair — [A,B] และ [B,A] ถือเป็น key เดียวกัน */
+        var keys = [first, second].sort();
+        pairKey  = keys[0] + '|' + keys[1];
+        if (recentPairs.indexOf(pairKey) === -1) found = true;
+    }
+    if (!found) {
+        /* combination หมด → ล้าง history แล้วใช้ pair ล่าสุดที่สุ่มได้ */
+        console.warn('lvStart: pair history full — clearing');
+        _lv.pairHistory = [];
+    }
+
+    _lv.pairHistory.push(pairKey);
+    if (_lv.pairHistory.length > 20) _lv.pairHistory = _lv.pairHistory.slice(-20);
+
+    _lv.sequence  = [first, second];
+    _lv.step      = 0;
+    _lv.challenge = first;
+    _lv.active    = true; _lv.passed = false;
+    _lv.count     = 0;   _lv.need   = 1; _lv.inAction = false;
+    _lv.blinkF    = 0;   _lv.mouthF = 0; _lv.turnF    = 0;
     _lv.blinkLock = false; _lv.mouthLock = false; _lv.turnLock = false;
     _lv.earBaseline = 0; _lv.earSamples = [];
+
+    /* แสดง sequence ทั้งหมดให้เห็นตั้งแต่ต้น */
+    var seqLabel = '🔐 ' + LV_TEXT[first] + '  →  ' + LV_TEXT[second];
+    var csEl = document.getElementById('fvCompactStatus');
+    if (csEl) csEl.textContent = seqLabel;
+
     var ov = document.getElementById('fvLivenessOverlay');
-    var ch = document.getElementById('fvLivenessChallenge');
     var tf = document.getElementById('fvLivenessTimerFill');
     var fg = document.getElementById('fvFaceGuide');
     if (ov) ov.style.display = 'flex';
     if (fg) fg.className = 'fv-face-guide';
-    if (ch) { ch.textContent = LV_TEXT[_lv.challenge]+' (0/'+_lv.need+')'; ch.className = 'fv-liveness-challenge'; }
     if (tf) { tf.style.transition='none'; tf.style.width='100%'; tf.style.background='#4ade80'; }
     setTimeout(function(){ if(tf){
-        tf.style.transition='width '+(_lv.timeLimit/1000)+'s linear'; tf.style.width='0%';
-    }},50);
-    fvSetStatus('loading','🔍', LV_TEXT[_lv.challenge]+' ให้ครบ '+_lv.need+' ครั้ง');
+        tf.style.transition = 'width '+(_lv.timeLimit/1000)+'s linear';
+        tf.style.width = '0%';
+    }}, 50);
+
+    lvShowChallenge();
     _lv.detLoop = setInterval(lvSendFrame, 100);
     _lv.timer   = setTimeout(function(){ if(!_lv.passed) lvFail(); }, _lv.timeLimit);
+}
+
+/* ── นับ action สำเร็จ 1 ครั้ง → switch ไป step ถัดไป หรือ pass ── */
+function lvCountAction() {
+    _lv.step++;
+    if (_lv.step >= _lv.sequence.length) {
+        /* ทำครบทุก step → ผ่าน */
+        lvPass();
+    } else {
+        /* switch ไป action ถัดไป — reset counters แต่ยังใช้ baseline EAR เดิม */
+        _lv.challenge  = _lv.sequence[_lv.step];
+        _lv.count      = 0; _lv.inAction = false;
+        _lv.blinkF     = 0; _lv.mouthF   = 0; _lv.turnF = 0;
+        _lv.blinkLock  = false; _lv.mouthLock = false; _lv.turnLock = false;
+        /* แจ้ง user ว่าผ่าน step แรกแล้ว */
+        var chEl = document.getElementById('fvLivenessChallenge');
+        if (chEl) { chEl.textContent = '✅ ผ่านแล้ว!'; chEl.className = 'fv-liveness-challenge success'; }
+        setTimeout(function() {
+            if (!_lv.passed) lvShowChallenge();
+        }, 600);
+    }
 }
 
 /* ── ผ่าน: ใช้ภาพที่ capture ไว้แล้ว (fvDataUrl) ส่ง GAS โดยตรง ── */
