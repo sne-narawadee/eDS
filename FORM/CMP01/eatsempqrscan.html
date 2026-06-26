@@ -982,18 +982,35 @@ function lvOnFaceResults(res) {
 
     /* ── กระพริบตา ── */
     if (ch === 'blink') {
-        var ear = (lvEAR(lm,[362,385,387,263,373,380]) + lvEAR(lm,[33,160,158,133,153,144])) / 2;
-        /* ปลด lock เมื่อลืมตากลับแล้ว (EAR สูงกว่า threshold ชัดเจน) */
-        if (_lv.blinkLock && ear > LV_EAR_CLOSE + 0.06) {
+        var ear = lvEAR(lm);  /* ใช้ฟังก์ชันใหม่ — ไม่ต้องส่ง array */
+
+        /* สะสม baseline EAR 10 frame แรก (ตาลืมปกติ) */
+        if (_lv.earBaseline === 0) {
+            _lv.earSamples.push(ear);
+            if (_lv.earSamples.length >= 10) {
+                /* เฉลี่ยและตัด outlier ต่ำออก */
+                var sorted = _lv.earSamples.slice().sort(function(a,b){return a-b;});
+                var trimmed = sorted.slice(2); /* ตัด 2 ค่าต่ำสุดออก */
+                _lv.earBaseline = trimmed.reduce(function(s,v){return s+v;},0) / trimmed.length;
+                console.log('EAR baseline:', _lv.earBaseline.toFixed(3));
+            }
+            return; /* รอเก็บ baseline ก่อน ยังไม่ตรวจ */
+        }
+
+        /* threshold = baseline * 0.65 (ตาหลับลงเหลือ 65% ของปกติ) */
+        var earThresh = _lv.earBaseline * LV_EAR_RATIO;
+
+        /* ปลด lock เมื่อลืมตากลับ (EAR กลับเกิน 85% ของ baseline) */
+        if (_lv.blinkLock && ear > _lv.earBaseline * 0.85) {
             _lv.blinkLock = false;
             _lv.inAction  = false;
             _lv.blinkF    = 0;
         }
-        if (ear < LV_EAR_CLOSE && !_lv.blinkLock) {
+        if (ear < earThresh && !_lv.blinkLock) {
             _lv.blinkF++;
-            if (_lv.blinkF >= LV_FRAMES && !_lv.inAction) {
+            if (_lv.blinkF >= LV_BLINK_FRAMES && !_lv.inAction) {
                 _lv.inAction  = true;
-                _lv.blinkLock = true;  /* ล็อค รอลืมตากลับ */
+                _lv.blinkLock = true;
                 _lv.blinkF    = 0;
                 lvCountAction();
             }
