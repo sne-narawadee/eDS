@@ -96,19 +96,22 @@ body {
 .fv-liveness-overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    align-items: center; justify-content: flex-start;
-    padding-top: 12px; pointer-events: none; z-index: 10;
+    align-items: center; justify-content: center;
+    padding: 12px; pointer-events: none; z-index: 10;
+    gap: 10px;
 }
 .fv-liveness-challenge {
-    background: rgba(0,0,0,0.72); color: #fff;
-    font-size: 15px; font-weight: 700;
-    padding: 7px 16px; border-radius: 20px;
-    text-align: center; margin-bottom: 6px;
+    background: rgba(0,0,0,0.78); color: #fff;
+    font-size: 22px; font-weight: 800;
+    padding: 12px 22px; border-radius: 16px;
+    text-align: center; line-height: 1.4;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
-.fv-liveness-challenge.success { background: rgba(22,163,74,0.9); }
-.fv-liveness-challenge.fail    { background: rgba(220,38,38,0.9); }
+.fv-liveness-challenge.success { background: rgba(22,163,74,0.92); }
+.fv-liveness-challenge.fail    { background: rgba(220,38,38,0.92); }
 .fv-liveness-timer-bar {
-    width: 78%; height: 5px;
+    width: 85%; height: 7px;
     background: rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden;
 }
 .fv-liveness-timer-fill {
