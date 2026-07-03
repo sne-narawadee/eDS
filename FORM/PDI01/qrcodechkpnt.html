@@ -22,15 +22,14 @@
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ดึง URL parameters จากหน้า test.html
+            // ดึง URL parameters จากหน้า Form.html
             const urlParams = new URLSearchParams(window.location.search);
             const rowId = urlParams.get('rowId');
             const spreadsheetId = urlParams.get('spreadsheetId');
             const sheetName = urlParams.get('sheetName');
 
             // สร้าง URL สำหรับ Google Apps Script โดยแนบ parameters เข้าไปด้วย
-            let googleScriptUrl = "https://script.google.com/macros/s/AKfycbyBMBb6XVGThtJw7-V9VW_tLB1NdTDTLkFBcRjfHMHeh3HaZ-dI1Q3u2B5AENhMSKiE/exec";
-
+            let googleScriptUrl = "https://script.google.com/macros/s/AKfycbzbUP3dX0bG12EZM13T2k2XqDjtjNB1GUkaQMtxLZJG4TmgRVH_MAenGWdcU-nkMXQl/exec";
             // ถ้ามีพารามิเตอร์ ให้แนบเข้าไปใน URL ของ Google Apps Script
             const paramsToPass = [];
             if (rowId) paramsToPass.push(`rowId=${rowId}`);
