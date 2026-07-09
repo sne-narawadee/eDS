@@ -437,8 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fvPreloadGps();
 
     var params = new URLSearchParams(window.location.search);
-    var GAS_URL = 'https://script.google.com/macros/s/AKfycbxmJ-awhVFoTT61pE3ajyXBbPLK6mX627x7uITkhv8qxyBsLxIDachIYgv4R3z9vdg/exec';
-    //var GAS_URL = 'https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec';
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec';
 
     var query         = [];
     var page          = params.get('page');
@@ -604,8 +603,7 @@ function fvDoCache(retryCount) {
     var MAX_RETRY    = 3;
     var GAS_EXEC_URL = fvGasBaseUrl
         ? fvGasBaseUrl.replace(/[?&]fvKey=[^&]*/g, '').replace(/&&/g, '&').replace(/[?&]$/, '')
-        : 'https://script.google.com/macros/s/AKfycbxmJ-awhVFoTT61pE3ajyXBbPLK6mX627x7uITkhv8qxyBsLxIDachIYgv4R3z9vdg/exec';
-       // : 'https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec';
+        : 'https://script.google.com/macros/s/AKfycbzaDECf0Q3rNtLRf8WiAQJr0sTJvO3dwY0JCTHQwGof7sFMFdz_5WeSy6SR1niXtz8W/exec';
 
     if (!fvDataUrl || fvDataUrl.length < 100) {
         console.error('fvDataUrl ว่าง — ยกเลิก cache');
