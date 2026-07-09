@@ -40,22 +40,22 @@
                 googleScriptUrl += "?" + paramsToPass.join("&");
             }
 
-            // กำหนด src ของ iframe ให้เป็น URL ที่สร้างขึ้นมา
+            /* กำหนด src ของ iframe ให้เป็น URL ที่สร้างขึ้นมา
             const iframe = document.getElementById('app');
             if (iframe) {
                 iframe.src = googleScriptUrl;
-            }
+            }*/
         });
     </script>
 </head>
 <body>
-    <!----
+    
     <iframe
       id="app"
       src="" allow="geolocation"
       frameborder="0"
       scrolling="no">
     </iframe>
-    --->
+    
 </body>
 </html>
