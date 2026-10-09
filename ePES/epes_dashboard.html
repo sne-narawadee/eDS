@@ -1,9 +1,9 @@
-<!----- Auto size iframe full screen ----->
+<!----- Auto size iframe full screen : หน้า "Dashboard" ----->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
     <title>eDS-Checkpoint Report</title>
     <style>
         html, body {
@@ -11,23 +11,62 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* ปิดการเลื่อน */
+            overflow: hidden;
         }
         iframe {
-            border: 0; /* ปิดขอบของ iframe */
+            border: 0;
             width: 100%;
             height: 100%;
-            display: block; /* ปิดช่องว่างภายใน iframe */
+            height: 100dvh;
+            display: block;
         }
     </style>
 </head>
 <body>
-    <iframe
-      id="app"
-      src="https://script.google.com/macros/s/AKfycbxvg8zshtamTO575RbrMSqGGntGJBUCCbIWnpK2WIKOYfzruqu6dA7SSht7he7H5lSx/exec?page=dashboard"
-      allow="geolocation"
-      frameborder="0"
-      scrolling="no">
-    </iframe>
+    <iframe id="app" allow="geolocation" frameborder="0"></iframe>
+
+    <script>
+    (function () {
+        var EXEC = 'https://script.google.com/macros/s/AKfycbxvg8zshtamTO575RbrMSqGGntGJBUCCbIWnpK2WIKOYfzruqu6dA7SSht7he7H5lSx/exec';
+        var PAGE = 'dashboard';   // dashboard | eval-form | settings | open
+
+        var FILES = {
+            'dashboard': 'epes_dashboard.html',
+            'eval-form': 'epes_eval.html',
+            'settings':  'epes_settings.html',
+            'open':      'epes_open.html'
+        };
+        var KEYS = ['t', 'dept', 'year', 'month'];
+
+        function clean(k, v) {
+            v = String(v == null ? '' : v);
+            if (k === 't') return /^[0-9a-f]{32}$/.test(v) ? v : '';
+            return v.replace(/\D/g, '').slice(0, 6);
+        }
+        function toQuery(src) {
+            var p = new URLSearchParams();
+            KEYS.forEach(function (k) {
+                var v = clean(k, src[k]);
+                if (v) p.set(k, v);
+            });
+            return p.toString();
+        }
+
+        var cur = {};
+        new URLSearchParams(location.search).forEach(function (v, k) { cur[k] = v; });
+        var q = toQuery(cur);
+        document.getElementById('app').src = EXEC + '?page=' + encodeURIComponent(PAGE) + (q ? '&' + q : '');
+
+        window.addEventListener('message', function (e) {
+            var host = '';
+            try { host = new URL(e.origin).hostname; } catch (err) { return; }
+            if (!/\.googleusercontent\.com$/.test(host)) return;
+            var d = e.data;
+            if (!d || d.ePES !== 'nav' || !Object.prototype.hasOwnProperty.call(FILES, d.page)) return;
+            var nq = toQuery(d.params || {});
+            location.href = FILES[d.page] + (nq ? '?' + nq : '');
+        });
+    })();
+    </script>
 </body>
 </html>
