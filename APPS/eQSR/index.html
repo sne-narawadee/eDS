@@ -29,7 +29,7 @@
   #scan{background:#05101F}
   .top{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;position:relative;z-index:2}
   .pill{background:var(--card);border-radius:20px;padding:8px 14px;font-size:14px;color:#DCE5F2}
-  .cam{flex:1;position:relative;overflow:hidden;background:#16202E}
+  .cam{flex:1;position:relative;overflow:hidden;background:#16202E;min-height:200px}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .frame{position:absolute;left:50%;top:50%;width:260px;height:260px;transform:translate(-50%,-50%)}
   .frame i{position:absolute;width:52px;height:52px;border:0 solid var(--acc)}
@@ -74,7 +74,7 @@
 <div id="scan" class="screen">
   <div class="top"><div style="font-weight:700;font-size:18px">eQSR</div><div class="pill" id="cd">ออกจากระบบใน --:--</div></div>
   <div class="cam">
-    <video id="v" muted playsinline></video>
+    <video id="v" muted playsinline autoplay></video>
     <div class="frame"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><div class="laser"></div></div>
   </div>
   <div class="bottom">
@@ -112,17 +112,19 @@
 
 <script>
 // ================= ค่าที่ต้องตั้ง / ปรับได้ =================
-var API_URL = 'https://script.google.com/macros/s/AKfycbzk-Tx498gUgOQmXS5c3wp1uF1rsklwqBuaQTKohOsHSkANqaB_2cTLIVrIg9JV1w/exec';   // << วางลิงก์ Web app ของ Apps Script (ลงท้าย /exec)
-var OPEN_MODE = 'embed';            // 'embed' แสดงในกรอบของแอป | 'newtab' เปิดแท็บใหม่ | 'same' เปิดแทนหน้านี้ (กลับด้วยปุ่ม Back ของเครื่อง)
-var PAGE_KEEPALIVE_MS = 120000;     // อยู่หน้าปลายทาง: ต่ออายุ session ทุก 2 นาที
-var PAGE_MAX_MS = 30 * 60000;       // อยู่หน้าปลายทางได้นานสุด 30 นาที แล้วออกจากระบบ
-var SCAN_INTERVAL_MS = 120;         // ถอดรหัสภาพทุก ~0.12 วินาที
-var SAME_QR_COOLDOWN_MS = 3000;     // ไม่ประมวลผล QR เดิมซ้ำภายในช่วงนี้
+var API_URL = 'https://script.google.com/macros/s/AKfycbzk-Tx498gUgOQmXS5c3wp1uF1rsklwqBuaQTKohOsHSkANqaB_2cTLIVrIg9JV1w/exec';
+var OPEN_MODE = 'same';             // 'same' เปิดแทนหน้านี้ (แนะนำสำหรับมือถือ กลับด้วยปุ่ม Back) | 'embed' แสดงในกรอบ | 'newtab' เปิดแท็บใหม่
+var PAGE_KEEPALIVE_MS = 120000;
+var PAGE_MAX_MS = 30 * 60000;
+var SCAN_INTERVAL_MS = 100;         // ถอดรหัสภาพทุก ~0.1 วินาที
+var SAME_QR_COOLDOWN_MS = 3000;
 var API_TIMEOUT_MS = 30000;
+var BD_TIMEOUT_MS = 400;            // ถ้า BarcodeDetector ไม่ตอบใน 0.4 วินาที ให้เลิกใช้แล้วใช้ jsQR แทน
 
 // ================= สถานะ =================
 var S = { token: null, idleMs: 300000, deadline: 0, stream: null, raf: 0, lastTick: 0,
-          busy: false, lastText: '', lastAt: 0, pageStart: 0, keepId: 0, tickId: 0, cid: null };
+          busy: false, lastText: '', lastAt: 0, pageStart: 0, keepId: 0, tickId: 0, cid: null,
+          frames: 0, pass: 0, bdBad: false, lastErr: '' };
 
 function $(id) { return document.getElementById(id); }
 function show(id) { ['login', 'scan', 'view', 'out'].forEach(function (s) { $(s).classList.toggle('on', s === id); }); }
@@ -131,7 +133,6 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = 'none'; }, 2500);
 }
 
-// ---- เรียก Apps Script API (POST แบบ simple request: ไม่ตั้ง Content-Type เพื่อเลี่ยง preflight) ----
 async function api(body) {
   if (API_URL.indexOf('PASTE') === 0) throw new Error('ยังไม่ได้ตั้งค่า API_URL');
   var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, API_TIMEOUT_MS);
@@ -152,7 +153,6 @@ function getClientId() {
   }
   return S.cid;
 }
-// เก็บ session ไว้ใน sessionStorage (หายเมื่อปิดแท็บ) เพื่อให้กลับมาต่อได้เมื่อหน้ารีโหลดหรือกด Back
 function saveSession(name) { try { sessionStorage.setItem('eqsr_s', JSON.stringify({ token: S.token, name: name || '' })); } catch (e) {} }
 function clearSession() { try { sessionStorage.removeItem('eqsr_s'); } catch (e) {} }
 
@@ -181,7 +181,6 @@ function toLogin(msg) {
   $('lerr').textContent = msg || '';
   show('login');
 }
-// กลับเข้ามาใหม่ (รีโหลด / กด Back) แล้วยังมี session ที่ใช้ได้ -> ไปหน้าสแกนต่อ
 async function resume() {
   var s = null; try { s = JSON.parse(sessionStorage.getItem('eqsr_s') || 'null'); } catch (e) {}
   if (!s || !s.token) return;
@@ -263,6 +262,12 @@ async function startCamera() {
       catch (e) { lastErr = e; if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) break; }
     }
     if (!S.stream) throw lastErr || new Error('nocam');
+    // ขอให้กล้องโฟกัสอัตโนมัติต่อเนื่อง (ช่วยให้สแกนบนมือถือง่ายขึ้น) ถ้าเครื่องไม่รองรับจะข้ามไป
+    try {
+      var trk = S.stream.getVideoTracks()[0];
+      var caps = trk.getCapabilities ? trk.getCapabilities() : {};
+      if (caps.focusMode && caps.focusMode.indexOf('continuous') >= 0) await trk.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+    } catch (e) {}
     var v = $('v'); v.muted = true; v.setAttribute('playsinline', ''); v.srcObject = S.stream; await v.play();
     $('status').textContent = 'วาง QR Code ให้อยู่ในกรอบ';
     S.lastTick = 0; S.raf = requestAnimationFrame(loop);
@@ -278,9 +283,10 @@ function stopScanner() {
   if (S.stream) { S.stream.getTracks().forEach(function (t) { t.stop(); }); S.stream = null; }
   var v = $('v'); try { v.pause(); } catch (e) {} v.srcObject = null;
 }
+
 var cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
 var BD = null; try { if ('BarcodeDetector' in window) BD = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { BD = null; }
-var decoding = false;
+var decoding = false, decStart = 0;
 var DEBUG = /[?&]debug/.test(location.search);
 // ไลบรารีสำรอง: ถ้า CDN แรกโหลดไม่ได้ ให้ลองอีกที่
 if (typeof jsQR === 'undefined') {
@@ -289,32 +295,50 @@ if (typeof jsQR === 'undefined') {
 function updateDbg() {
   if (!DEBUG) return;
   var d = $('dbg'), v = $('v'); d.style.display = 'block';
-  d.textContent = v.videoWidth + 'x' + v.videoHeight + ' | frames:' + (S.frames || 0) + ' | jsQR:' + (typeof jsQR !== 'undefined') + ' | BD:' + !!BD + (S.lastErr ? ' | err:' + S.lastErr : '');
+  d.textContent = v.videoWidth + 'x' + v.videoHeight + ' | frames:' + S.frames + ' | jsQR:' + (typeof jsQR !== 'undefined') + ' | BD:' + !!BD + (S.bdBad ? '(off)' : '') + (S.lastErr ? ' | err:' + S.lastErr : '');
 }
-// อ่าน QR จากเฟรมวิดีโอ: ใช้ตัวอ่านของเบราว์เซอร์ก่อน (ถ้ามี) แล้วใช้ jsQR ตัดเฉพาะกลางภาพ (ละเอียดกว่าเดิม)
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]);
+}
+// อ่าน QR จากเฟรมวิดีโอ: ใช้ตัวอ่านของเบราว์เซอร์ก่อน (มี timeout) แล้วใช้ jsQR สลับระหว่างภาพเต็มเฟรมกับภาพตัดกลาง
 async function decodeVideo(v) {
-  if (BD) {
-    try { var r = await BD.detect(v); if (r && r.length && r[0].rawValue) return r[0].rawValue; }
-    catch (e) { S.lastErr = 'BD:' + (e && e.name); }
+  if (BD && !S.bdBad) {
+    try {
+      var r = await withTimeout(BD.detect(v), BD_TIMEOUT_MS);
+      if (r && r.length && r[0].rawValue) return r[0].rawValue;
+    } catch (e) {
+      S.lastErr = 'BD:' + (e && (e.name || e.message));
+      if (e && e.message === 'timeout') S.bdBad = true;   // ค้าง -> เลิกใช้ BD
+    }
   }
   if (typeof jsQR === 'undefined') { S.lastErr = 'jsQR not loaded'; return null; }
-  var vw = v.videoWidth, vh = v.videoHeight, side = Math.floor(Math.min(vw, vh) * 0.8);
-  var sx = Math.floor((vw - side) / 2), sy = Math.floor((vh - side) / 2), out = Math.min(side, 800);
-  cv.width = out; cv.height = out;
-  cx.drawImage(v, sx, sy, side, side, 0, 0, out, out);
-  var img = cx.getImageData(0, 0, out, out);
-  var c = jsQR(img.data, out, out, { inversionAttempts: 'attemptBoth' });
+  var vw = v.videoWidth, vh = v.videoHeight, w, h;
+  S.pass = (S.pass + 1) % 2;
+  if (S.pass === 0) {                       // ภาพเต็มเฟรม ย่อไม่เกิน 900px
+    var sc = Math.min(1, 900 / Math.max(vw, vh));
+    w = Math.round(vw * sc); h = Math.round(vh * sc);
+    cv.width = w; cv.height = h;
+    cx.drawImage(v, 0, 0, w, h);
+  } else {                                  // ตัดกลางภาพ 60% ความละเอียดเดิม (เหมาะกับ QR เล็ก/ไกล)
+    var side = Math.floor(Math.min(vw, vh) * 0.6), out = Math.min(side, 800);
+    var sx = Math.floor((vw - side) / 2), sy = Math.floor((vh - side) / 2);
+    w = out; h = out; cv.width = w; cv.height = h;
+    cx.drawImage(v, sx, sy, side, side, 0, 0, w, h);
+  }
+  var img = cx.getImageData(0, 0, w, h);
+  var c = jsQR(img.data, w, h, { inversionAttempts: 'attemptBoth' });
   return (c && c.data) ? c.data : null;
 }
 function loop(ts) {
   S.raf = requestAnimationFrame(loop);
+  if (decoding && Date.now() - decStart > 3000) decoding = false;   // กันลูปค้าง
   if (S.busy || decoding || ts - S.lastTick < SCAN_INTERVAL_MS) return;
   S.lastTick = ts;
-  var v = $('v'); if (!v.videoWidth) return;
-  decoding = true;
+  var v = $('v'); if (!v.videoWidth || v.readyState < 2) return;
+  decoding = true; decStart = Date.now();
   decodeVideo(v)
-    .then(function (text) { S.frames = (S.frames || 0) + 1; if (text) handleText(text); })
-    .catch(function (e) { S.lastErr = (e && e.name) || 'decode'; })
+    .then(function (text) { S.frames++; if (text) handleText(text); })
+    .catch(function (e) { S.lastErr = (e && (e.name || e.message)) || 'decode'; })
     .then(function () { decoding = false; });
 }
 async function handleText(text) {
@@ -339,12 +363,13 @@ async function handleText(text) {
 $('pic').onclick = function () { $('file').click(); };
 $('file').onchange = function (ev) {
   var f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  if (typeof jsQR === 'undefined') { toast('ไลบรารีอ่าน QR ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง'); return; }
   var url = URL.createObjectURL(f), im = new Image();
   im.onload = function () {
     var sc = Math.min(1, 1000 / Math.max(im.width, im.height));
     cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
     cx.drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
-    var d = cx.getImageData(0, 0, cv.width, cv.height), c = jsQR(d.data, d.width, d.height);
+    var d = cx.getImageData(0, 0, cv.width, cv.height), c = jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
     if (c && c.data) { S.lastText = ''; handleText(c.data); } else toast('ไม่พบ QR ในรูป ลองถ่ายใหม่ให้ชัดขึ้น');
   };
   im.onerror = function () { toast('อ่านรูปไม่ได้'); };
