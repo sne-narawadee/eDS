@@ -70,13 +70,13 @@
     <div id="lerr" class="err"></div>
     <button id="lbtn" class="btn">เข้าสู่ระบบและเปิดกล้อง</button>
     <div class="small">เมื่อเข้าสู่ระบบ กล้องจะเปิดอัตโนมัติ</div>
-    <div class="small">เวอร์ชัน 4</div>
+    <div class="small">เวอร์ชัน <span id="ver2"></span></div>
   </div>
 </div>
 
 <!-- 2) Scanner -->
 <div id="scan" class="screen">
-  <div class="top"><div style="font-weight:700;font-size:18px">eQSR v4</div><div class="pill" id="cnt">สแกนแล้ว 0 จุด</div></div>
+  <div class="top"><div style="font-weight:700;font-size:18px">eQSR <span id="ver" style="font-weight:400;font-size:12px"></span></div><div class="pill" id="cnt">สแกนแล้ว 0 จุด</div></div>
   <div class="cam">
     <video id="v" muted playsinline autoplay></video>
     <div class="frame"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><div class="laser"></div></div>
@@ -390,6 +390,11 @@ $('lo').onclick = manualLogout;
 $('retry').onclick = startCamera;
 $('done').onclick = backToCamera;
 $('back').onclick = backToCamera;
+(function () {
+  var d = new Date(document.lastModified);
+  var t = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+  $('ver').textContent = t; $('ver2').textContent = t;
+})();  
 resume();
 </script>
 </body>
