@@ -6,3 +6,14 @@
 4.เปิด Chrome ใหม่ แล้วเปิดลิงก์ .../index.html ตามปกติ
 5.เมื่อ Chrome ขอใช้กล้อง กด อนุญาต
 -------------------------------------------------------------------
+
+APPS/eQSR/
+├── index.html
+├── app.html
+├── manifest.webmanifest
+├── sw.js
+└── icons/
+    ├── icon-192.png
+    ├── icon-512.png
+    ├── icon-maskable-512.png
+    └── apple-touch-icon.png
