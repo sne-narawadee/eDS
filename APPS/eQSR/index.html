@@ -4,12 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B1F3A">
-
-<!-- No cache -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-  
 <title>eQSR</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
@@ -20,7 +17,7 @@
   .screen{display:none;position:fixed;inset:0;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
   .screen.on{display:flex}
   .pad{padding:0 24px}
-  h1{margin:8px 0 4px;font-size:32px} h2{margin:8px 0 0;font-size:26px}
+  h1{margin:8px 0 4px;font-size:32px}
   .sub{color:var(--sub);font-size:16px;line-height:1.7}
   .small{font-size:13px;color:var(--sub);line-height:1.6;text-align:center}
   label{font-size:15px;color:#DCE5F2}
@@ -49,15 +46,15 @@
   #status{font-size:17px;min-height:26px}
   .toast{position:fixed;left:16px;right:16px;bottom:calc(120px + env(safe-area-inset-bottom));background:#fff;color:#0B1F3A;border-radius:12px;padding:12px 16px;font-size:15px;display:none;z-index:9;text-align:center}
   #view{background:#fff;color:#0B1F3A}
-  .vtop{background:var(--bg);color:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center}
-  .host{flex:1;background:var(--card);border-radius:10px;padding:10px 14px;font-size:14px;color:#DCE5F2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .vbtn{background:var(--card);color:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;text-decoration:none;white-space:nowrap}
+  .vtop{background:var(--bg);color:#fff;padding:12px 16px;display:flex;gap:8px;align-items:center}
+  .host{flex:1;min-width:0;background:var(--card);border-radius:10px;padding:10px 14px;font-size:14px;color:#DCE5F2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vbtn{background:var(--card);color:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;text-decoration:none;white-space:nowrap;font-weight:600}
+  .vbtn.acc{background:var(--acc);color:var(--accT);border-color:var(--acc)}
   #frame{flex:1;width:100%;border:0;background:#F4F7FB}
   #nt{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:#F4F7FB}
   .vbot{padding:14px 24px 20px;background:#fff;border-top:1px solid #DCE5F2;display:flex;flex-direction:column;gap:6px}
   .hint{font-size:12px;color:#5B6B85;text-align:center}
-  #out,#login{align-items:center;justify-content:center;text-align:center;gap:16px}
-  .ico{width:72px;height:72px;border-radius:36px;background:var(--card);border:2px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--acc)}
+  #login{align-items:center;justify-content:center;text-align:center;gap:16px}
 </style>
 </head>
 <body>
@@ -72,14 +69,14 @@
     <input id="un" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" maxlength="100">
     <div id="lerr" class="err"></div>
     <button id="lbtn" class="btn">เข้าสู่ระบบและเปิดกล้อง</button>
-    <div class="small">เมื่อเข้าสู่ระบบ กล้องจะเปิดอัตโนมัติ<br>ระบบจะออกจากระบบเองเมื่อไม่มีการสแกน 5 นาที</div>
-    <div class="small">เวอร์ชัน 3</div>
+    <div class="small">เมื่อเข้าสู่ระบบ กล้องจะเปิดอัตโนมัติ</div>
+    <div class="small">เวอร์ชัน 4</div>
   </div>
 </div>
 
 <!-- 2) Scanner -->
 <div id="scan" class="screen">
-  <div class="top"><div style="font-weight:700;font-size:18px">eQSR v3</div><div class="pill" id="cd">ออกจากระบบใน --:--</div></div>
+  <div class="top"><div style="font-weight:700;font-size:18px">eQSR v4</div><div class="pill" id="cnt">สแกนแล้ว 0 จุด</div></div>
   <div class="cam">
     <video id="v" muted playsinline autoplay></video>
     <div class="frame"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><div class="laser"></div></div>
@@ -98,50 +95,42 @@
 
 <!-- 3) Destination page -->
 <div id="view" class="screen">
-  <div class="vtop"><div class="host" id="host"></div><a id="newtab" class="vbtn" target="_blank" rel="noopener" href="#">เปิดแท็บใหม่</a></div>
+  <div class="vtop">
+    <button id="back" class="vbtn acc">&#8592; กลับไปกล้อง</button>
+    <div class="host" id="host"></div>
+    <a id="newtab" class="vbtn" target="_blank" rel="noopener" href="#">แท็บใหม่</a>
+  </div>
   <iframe id="frame" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
   <div id="nt"><div style="font-size:20px;font-weight:700">เปิดหน้าปลายทางแล้ว</div><div class="hint" style="font-size:14px">ถ้าหน้าไม่เปิดเอง กดปุ่มด้านล่าง</div><a id="ntlink" class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;max-width:320px" target="_blank" rel="noopener" href="#">เปิดหน้า</a></div>
   <div class="vbot">
-    <button id="done" class="btn">เสร็จสิ้น กลับไปสแกนต่อ</button>
-    <div class="hint" id="vhint">ถ้าหน้าไม่แสดงในกรอบ ให้กด "เปิดแท็บใหม่"</div>
-  </div>
-</div>
-
-<!-- 4) Signed out -->
-<div id="out" class="screen">
-  <div class="pad" style="display:flex;flex-direction:column;align-items:center;gap:16px;width:100%">
-    <div class="ico">&#9211;</div>
-    <h2>ออกจากระบบแล้ว</h2>
-    <div class="sub">ไม่มีการสแกนเกินเวลาที่กำหนด<br>กล้องถูกปิดเพื่อความปลอดภัย</div>
-    <button id="relogin" class="btn" style="margin-top:16px">เข้าสู่ระบบอีกครั้ง</button>
+    <button id="done" class="btn">เสร็จสิ้น กลับไปสแกนจุดถัดไป</button>
+    <div class="hint" id="vhint">ถ้าหน้าไม่แสดงในกรอบ ให้กด "แท็บใหม่" แล้วกลับมากดปุ่มนี้</div>
   </div>
 </div>
 
 <script>
 // ================= ค่าที่ต้องตั้ง / ปรับได้ =================
 var API_URL = 'https://script.google.com/macros/s/AKfycbzk-Tx498gUgOQmXS5c3wp1uF1rsklwqBuaQTKohOsHSkANqaB_2cTLIVrIg9JV1w/exec';
-var OPEN_MODE = 'same';             // 'same' เปิดแทนหน้านี้ (แนะนำสำหรับมือถือ กลับด้วยปุ่ม Back) | 'embed' แสดงในกรอบ | 'newtab' เปิดแท็บใหม่
-var PAGE_KEEPALIVE_MS = 120000;
-var PAGE_MAX_MS = 30 * 60000;
-var SCAN_INTERVAL_MS = 100;         // ถอดรหัสภาพทุก ~0.1 วินาที
+var OPEN_MODE = 'embed';            // 'embed' แสดงในกรอบพร้อมปุ่มกลับกล้อง (แนะนำ) | 'newtab' เปิดแท็บใหม่ | 'same' เปิดแทนหน้านี้
+var KEEPALIVE_MS = 120000;          // ต่ออายุ session กับเซิร์ฟเวอร์ทุก 2 นาที (ไม่มีการนับถอยหลัง/ไม่ logout เอง)
+var SCAN_INTERVAL_MS = 100;
 var SAME_QR_COOLDOWN_MS = 3000;
 var API_TIMEOUT_MS = 30000;
-var BD_TIMEOUT_MS = 400;            // ถ้า BarcodeDetector ไม่ตอบใน 0.4 วินาที ให้เลิกใช้แล้วใช้ jsQR แทน
+var BD_TIMEOUT_MS = 400;
 
 // ================= สถานะ =================
-var S = { token: null, idleMs: 300000, deadline: 0, stream: null, raf: 0, lastTick: 0,
-          busy: false, lastText: '', lastAt: 0, pageStart: 0, keepId: 0, tickId: 0, cid: null,
-          frames: 0, pass: 0, bdBad: false, lastErr: '' };
+var S = { token: null, stream: null, raf: 0, lastTick: 0, busy: false, lastText: '', lastAt: 0,
+          keepId: 0, dbgId: 0, cid: null, frames: 0, pass: 0, bdBad: false, lastErr: '', count: 0 };
 
 function $(id) { return document.getElementById(id); }
-function show(id) { ['login', 'scan', 'view', 'out'].forEach(function (s) { $(s).classList.toggle('on', s === id); }); }
+function show(id) { ['login', 'scan', 'view'].forEach(function (s) { $(s).classList.toggle('on', s === id); }); }
 function toast(msg) {
   var t = $('toast'); t.textContent = msg; t.style.display = 'block';
   clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = 'none'; }, 2500);
 }
+function setCount() { $('cnt').textContent = 'สแกนแล้ว ' + S.count + ' จุด'; }
 
 async function api(body) {
-  if (API_URL.indexOf('PASTE') === 0) throw new Error('ยังไม่ได้ตั้งค่า API_URL');
   var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, API_TIMEOUT_MS);
   try {
     var res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body), redirect: 'follow', signal: ctl.signal });
@@ -150,7 +139,6 @@ async function api(body) {
     return j.data;
   } finally { clearTimeout(t); }
 }
-
 function getClientId() {
   if (S.cid) return S.cid;
   try { S.cid = localStorage.getItem('eqsr_cid'); } catch (e) {}
@@ -160,8 +148,18 @@ function getClientId() {
   }
   return S.cid;
 }
-function saveSession(name) { try { sessionStorage.setItem('eqsr_s', JSON.stringify({ token: S.token, name: name || '' })); } catch (e) {} }
+function saveSession(name) { try { sessionStorage.setItem('eqsr_s', JSON.stringify({ token: S.token, name: name || '', count: S.count })); } catch (e) {} }
 function clearSession() { try { sessionStorage.removeItem('eqsr_s'); } catch (e) {} }
+
+// ---- ต่ออายุ session เบื้องหลัง (แทนการ logout อัตโนมัติ) ----
+function startKeepAlive() { clearInterval(S.keepId); S.keepId = setInterval(keepAlive, KEEPALIVE_MS); }
+async function keepAlive() {
+  if (!S.token) return;
+  try {
+    var r = await api({ action: 'validate', token: S.token });
+    if (!r || !r.valid) toLogin('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+  } catch (e) { /* เครือข่ายสะดุด ลองใหม่รอบหน้า */ }
+}
 
 // ================= Login =================
 async function doLogin() {
@@ -172,7 +170,7 @@ async function doLogin() {
   try {
     var r = await api({ action: 'login', username: u, clientId: getClientId(), userAgent: navigator.userAgent });
     if (!r || !r.success) { $('lerr').textContent = (r && r.message) || 'เข้าสู่ระบบไม่สำเร็จ'; return; }
-    S.token = r.token; S.idleMs = (r.idleSeconds || 300) * 1000;
+    S.token = r.token; S.count = 0;
     $('who').textContent = r.fullName ? ('ผู้ใช้: ' + r.fullName) : '';
     saveSession(r.fullName); $('un').value = '';
     enterScanner();
@@ -183,7 +181,7 @@ async function doLogin() {
   }
 }
 function toLogin(msg) {
-  stopScanner(); clearInterval(S.keepId); clearInterval(S.tickId);
+  stopScanner(); clearInterval(S.keepId); clearInterval(S.dbgId);
   $('frame').src = 'about:blank'; S.token = null; clearSession();
   $('lerr').textContent = msg || '';
   show('login');
@@ -194,30 +192,12 @@ async function resume() {
   try {
     var r = await api({ action: 'validate', token: s.token });
     if (r && r.valid) {
-      S.token = s.token; S.idleMs = (r.idleSeconds || 300) * 1000;
+      S.token = s.token; S.count = s.count || 0;
       $('who').textContent = (r.fullName || s.name) ? ('ผู้ใช้: ' + (r.fullName || s.name)) : '';
       enterScanner(); return;
     }
   } catch (e) {}
   clearSession();
-}
-
-// ================= Idle countdown =================
-function resetIdle() { S.deadline = Date.now() + S.idleMs; }
-function tick() {
-  if (!$('scan').classList.contains('on')) return;
-  updateDbg();
-  var left = Math.max(0, S.deadline - Date.now());
-  var m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
-  $('cd').textContent = 'ออกจากระบบใน ' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-  if (left <= 0) autoLogout();
-}
-async function autoLogout() {
-  var t = S.token;
-  stopScanner(); clearInterval(S.keepId); clearInterval(S.tickId);
-  $('frame').src = 'about:blank'; S.token = null; clearSession();
-  show('out');
-  if (t) { try { await api({ action: 'logout', token: t, reason: 'AUTO_LOGOUT' }); } catch (e) {} }
 }
 async function manualLogout() {
   var t = S.token;
@@ -226,15 +206,15 @@ async function manualLogout() {
 }
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) return;
-  tick();
+  if (S.token) keepAlive();
   if ($('scan').classList.contains('on') && !S.stream && !S.busy && $('pic').style.display === 'none') startCamera();
 });
 window.addEventListener('pageshow', function (e) { if (e.persisted) resume(); });
 
 // ================= Scanner =================
 function enterScanner() {
-  show('scan'); resetIdle(); tick();
-  clearInterval(S.tickId); S.tickId = setInterval(tick, 1000);
+  show('scan'); setCount(); startKeepAlive();
+  clearInterval(S.dbgId); S.dbgId = setInterval(updateDbg, 1000);
   S.busy = false; S.lastText = '';
   startCamera();
 }
@@ -269,7 +249,6 @@ async function startCamera() {
       catch (e) { lastErr = e; if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) break; }
     }
     if (!S.stream) throw lastErr || new Error('nocam');
-    // ขอให้กล้องโฟกัสอัตโนมัติต่อเนื่อง (ช่วยให้สแกนบนมือถือง่ายขึ้น) ถ้าเครื่องไม่รองรับจะข้ามไป
     try {
       var trk = S.stream.getVideoTracks()[0];
       var caps = trk.getCapabilities ? trk.getCapabilities() : {};
@@ -295,19 +274,17 @@ var cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFr
 var BD = null; try { if ('BarcodeDetector' in window) BD = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { BD = null; }
 var decoding = false, decStart = 0;
 var DEBUG = /[?&]debug/.test(location.search);
-// ไลบรารีสำรอง: ถ้า CDN แรกโหลดไม่ได้ ให้ลองอีกที่
 if (typeof jsQR === 'undefined') {
   var _s = document.createElement('script'); _s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'; document.head.appendChild(_s);
 }
 function updateDbg() {
-  if (!DEBUG) return;
+  if (!DEBUG || !$('scan').classList.contains('on')) return;
   var d = $('dbg'), v = $('v'); d.style.display = 'block';
   d.textContent = v.videoWidth + 'x' + v.videoHeight + ' | frames:' + S.frames + ' | jsQR:' + (typeof jsQR !== 'undefined') + ' | BD:' + !!BD + (S.bdBad ? '(off)' : '') + (S.lastErr ? ' | err:' + S.lastErr : '');
 }
 function withTimeout(p, ms) {
   return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]);
 }
-// อ่าน QR จากเฟรมวิดีโอ: ใช้ตัวอ่านของเบราว์เซอร์ก่อน (มี timeout) แล้วใช้ jsQR สลับระหว่างภาพเต็มเฟรมกับภาพตัดกลาง
 async function decodeVideo(v) {
   if (BD && !S.bdBad) {
     try {
@@ -315,18 +292,18 @@ async function decodeVideo(v) {
       if (r && r.length && r[0].rawValue) return r[0].rawValue;
     } catch (e) {
       S.lastErr = 'BD:' + (e && (e.name || e.message));
-      if (e && e.message === 'timeout') S.bdBad = true;   // ค้าง -> เลิกใช้ BD
+      if (e && e.message === 'timeout') S.bdBad = true;
     }
   }
   if (typeof jsQR === 'undefined') { S.lastErr = 'jsQR not loaded'; return null; }
   var vw = v.videoWidth, vh = v.videoHeight, w, h;
   S.pass = (S.pass + 1) % 2;
-  if (S.pass === 0) {                       // ภาพเต็มเฟรม ย่อไม่เกิน 900px
+  if (S.pass === 0) {
     var sc = Math.min(1, 900 / Math.max(vw, vh));
     w = Math.round(vw * sc); h = Math.round(vh * sc);
     cv.width = w; cv.height = h;
     cx.drawImage(v, 0, 0, w, h);
-  } else {                                  // ตัดกลางภาพ 60% ความละเอียดเดิม (เหมาะกับ QR เล็ก/ไกล)
+  } else {
     var side = Math.floor(Math.min(vw, vh) * 0.6), out = Math.min(side, 800);
     var sx = Math.floor((vw - side) / 2), sy = Math.floor((vh - side) / 2);
     w = out; h = out; cv.width = w; cv.height = h;
@@ -338,7 +315,7 @@ async function decodeVideo(v) {
 }
 function loop(ts) {
   S.raf = requestAnimationFrame(loop);
-  if (decoding && Date.now() - decStart > 3000) decoding = false;   // กันลูปค้าง
+  if (decoding && Date.now() - decStart > 3000) decoding = false;
   if (S.busy || decoding || ts - S.lastTick < SCAN_INTERVAL_MS) return;
   S.lastTick = ts;
   var v = $('v'); if (!v.videoWidth || v.readyState < 2) return;
@@ -358,8 +335,9 @@ async function handleText(text) {
   if (navigator.vibrate) navigator.vibrate(60);
   try {
     var r = await api({ action: 'scan', token: S.token, url: text });
-    if (r && r.expired) { toLogin(r.message || 'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่'); return; }
+    if (r && r.expired) { toLogin(r.message || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่'); return; }
     if (!r || !r.success) { toast((r && r.message) || 'สแกนไม่สำเร็จ'); S.busy = false; $('status').textContent = 'วาง QR Code ให้อยู่ในกรอบ'; return; }
+    S.count++; setCount();
     openPage(r.url);
   } catch (e) {
     toast('เชื่อมต่อระบบไม่ได้ ลองสแกนใหม่'); S.busy = false; $('status').textContent = 'วาง QR Code ให้อยู่ในกรอบ';
@@ -385,8 +363,8 @@ $('file').onchange = function (ev) {
 
 // ================= หน้าปลายทาง =================
 function openPage(url) {
-  stopScanner(); clearInterval(S.tickId);
-  if (OPEN_MODE === 'same') { saveSession(); location.href = url; return; }   // กลับมาด้วยปุ่ม Back -> resume()
+  stopScanner();
+  if (OPEN_MODE === 'same') { saveSession(); location.href = url; return; }
   var host = (url.match(/^https?:\/\/([^\/?#]+)/i) || [])[1] || '';
   $('host').textContent = host; $('newtab').href = url; $('ntlink').href = url;
   show('view');
@@ -397,26 +375,12 @@ function openPage(url) {
     $('nt').style.display = 'none'; $('frame').style.display = 'block'; $('vhint').style.display = 'block';
     $('frame').src = url;
   }
-  S.pageStart = Date.now();
-  clearInterval(S.keepId); S.keepId = setInterval(keepAlive, PAGE_KEEPALIVE_MS);
 }
-async function keepAlive() {
-  if (Date.now() - S.pageStart > PAGE_MAX_MS) { autoLogout(); return; }
-  try {
-    var r = await api({ action: 'validate', token: S.token });
-    if (!r || !r.valid) toLogin('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่');
-  } catch (e) { /* เครือข่ายสะดุด ลองใหม่รอบหน้า */ }
-}
-async function finishPage() {
-  clearInterval(S.keepId); $('frame').src = 'about:blank';
-  $('done').disabled = true;
-  try {
-    var r = await api({ action: 'validate', token: S.token });
-    if (!r || !r.valid) { toLogin('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่'); return; }
-    enterScanner();
-  } catch (e) {
-    toLogin('เชื่อมต่อระบบไม่ได้ กรุณาเข้าสู่ระบบใหม่');
-  } finally { $('done').disabled = false; }
+// กลับไปกล้องเพื่อสแกนจุดถัดไป
+function backToCamera() {
+  $('frame').src = 'about:blank';
+  saveSession();
+  enterScanner();
 }
 
 // ================= ผูกปุ่ม / เริ่มต้น =================
@@ -424,8 +388,8 @@ $('lbtn').onclick = doLogin;
 $('un').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 $('lo').onclick = manualLogout;
 $('retry').onclick = startCamera;
-$('done').onclick = finishPage;
-$('relogin').onclick = function () { $('lerr').textContent = ''; show('login'); };
+$('done').onclick = backToCamera;
+$('back').onclick = backToCamera;
 resume();
 </script>
 </body>
