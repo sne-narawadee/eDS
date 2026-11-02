@@ -31,7 +31,7 @@
   .logo{width:84px;height:84px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--acc);font-size:22px;font-weight:700;background:#fff0}
   .logo img{width:100%;height:100%;object-fit:cover;display:block}
   .blogo{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none}
-  #lbtn{display:flex;align-items:center;justify-content:center;gap:10px}
+  #lbtn,#done{display:flex;align-items:center;justify-content:center;gap:10px}
   #scan{background:#05101F}
   .top{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;position:relative;z-index:2}
   .pill{background:var(--card);border-radius:20px;padding:8px 14px;font-size:14px;color:#DCE5F2}
@@ -106,7 +106,7 @@
   <iframe id="frame" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"></iframe>
   <div id="nt"><div style="font-size:20px;font-weight:700">เปิดหน้าปลายทางแล้ว</div><div class="hint" style="font-size:14px">ถ้าหน้าไม่เปิดเอง กดปุ่มด้านล่าง</div><a id="ntlink" class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;max-width:320px" target="_blank" rel="noopener" href="#">เปิดหน้า</a></div>
   <div class="vbot">
-    <button id="done" class="btn">เสร็จสิ้น กลับไปสแกนจุดถัดไป</button>
+    <button id="done" class="btn"><img id="donelogo" class="blogo" alt="" referrerpolicy="no-referrer"><span>เสร็จสิ้น กลับไปสแกนจุดถัดไป</span></button>
     <div class="hint" id="vhint">ถ้าหน้าไม่แสดงในกรอบ ให้กด "แท็บใหม่" แล้วกลับมากดปุ่มนี้</div>
   </div>
 </div>
@@ -396,10 +396,11 @@ $('retry').onclick = startCamera;
 $('done').onclick = backToCamera;
 $('back').onclick = backToCamera;
 (function () {
-  var li = $('logoimg'), bi = $('lbtnlogo');
+  var li = $('logoimg'), bi = $('lbtnlogo'), di = $('donelogo');
   li.onerror = function () { li.style.display = 'none'; $('logo').textContent = 'SNE'; };   // โหลดรูปไม่ได้ -> แสดงตัวอักษรแทน
   bi.onerror = function () { bi.style.display = 'none'; };
-  li.src = LOGO_URL; bi.src = LOGO_URL;
+  di.onerror = function () { di.style.display = 'none'; };
+  li.src = LOGO_URL; bi.src = LOGO_URL; di.src = LOGO_URL;
   var d = new Date(document.lastModified);
   var t = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
   $('ver').textContent = t; $('ver2').textContent = t;
