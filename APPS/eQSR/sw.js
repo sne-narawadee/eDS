@@ -1,5 +1,5 @@
 // eQSR service worker: โหลดจากเครือข่ายก่อนเสมอ (ไม่ใช้แคชเก่า) ใช้แคชเฉพาะตอนออฟไลน์
-var CACHE = 'eqsr-v1';
+var CACHE = 'eqsr-v2';
 self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil(
