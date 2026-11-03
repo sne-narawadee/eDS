@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#6D1A1F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MSYS">
+<title>MSYS - Menu Portal</title>
+<style>
+  html,body{margin:0;height:100%;background:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+  #app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;visibility:hidden}
+  #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#6D1A1F;color:#F3D9DA;text-align:center;padding:24px}
+  #boot img{width:88px;height:88px;border-radius:50%}
+  #boot .t{font-size:20px;font-weight:700;color:#fff}
+  #boot a{color:#F2C94C;font-size:14px;display:none}
+  #pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:10;display:none;align-items:center;gap:10px;background:#6D1A1F;color:#fff;border-radius:24px;padding:8px 8px 8px 16px;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  #pill button{border:0;border-radius:16px;padding:8px 14px;font:600 14px inherit;cursor:pointer}
+  #inst{background:#F2C94C;color:#3A0D10}
+  #x{background:transparent;color:#F3D9DA;padding:8px 10px}
+</style>
+</head>
+<body>
+<div id="boot">
+  <img src="icons/icon-192.png" alt="MSYS">
+  <div class="t">MSYS - Menu Portal</div>
+  <div>กำลังเปิดระบบ…</div>
+  <a id="direct" href="#">หน้าไม่ขึ้น? กดเพื่อเปิดโดยตรง</a>
+</div>
+<iframe id="app" title="MSYS" allow="camera *; microphone *; geolocation *; clipboard-write *; fullscreen *" allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals allow-top-navigation-by-user-activation allow-storage-access-by-user-activation allow-presentation allow-orientation-lock"></iframe>
+<div id="pill"><span id="ptxt">ติดตั้งแอป MSYS</span><button id="inst">ติดตั้ง</button><button id="x" aria-label="ปิด">&#10005;</button></div>
+
+<script>
+// ลิงก์ Web app ของ Apps Script (ลงท้าย /exec) - แก้ที่นี่ที่เดียวถ้าเปลี่ยน deployment
+var APP_URL = 'https://script.google.com/macros/s/AKfycbzjYpA1JMVKiwhdiggMR_KoLzEPDLAF3F9WPrPJTOn5Mf8GtmCiSvl63pKn4xG5-fc/exec';
+
+function $(id) { return document.getElementById(id); }
+$('direct').href = APP_URL;
+
+if (/[?&]direct/.test(location.search)) {
+  location.replace(APP_URL);                       // โหมดสำรอง: เปิดพอร์ทัลตรง ๆ ไม่ผ่านกรอบ
+} else {
+  var f = $('app');
+  f.onload = function () { $('boot').style.display = 'none'; f.style.visibility = 'visible'; };
+  f.src = APP_URL;
+  setTimeout(function () { if ($('boot').style.display !== 'none') $('direct').style.display = 'block'; }, 8000);
+}
+
+// ---- ติดตั้งเป็นแอป (PWA) ----
+var deferred = null, pill = $('pill');
+var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+function showPill(txt, canInstall) {
+  if (standalone) return;
+  $('ptxt').textContent = txt; $('inst').style.display = canInstall ? '' : 'none';
+  pill.style.display = 'flex';
+  setTimeout(function () { pill.style.display = 'none'; }, 15000);
+}
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; showPill('ติดตั้งแอป MSYS ลงเครื่อง', true); });
+window.addEventListener('appinstalled', function () { deferred = null; pill.style.display = 'none'; });
+$('inst').onclick = async function () {
+  if (!deferred) return;
+  deferred.prompt(); try { await deferred.userChoice; } catch (e) {}
+  deferred = null; pill.style.display = 'none';
+};
+$('x').onclick = function () { pill.style.display = 'none'; };
+if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) showPill('iPhone: กดปุ่มแชร์ แล้วเลือก "เพิ่มลงในหน้าจอโฮม"', false);
+if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+</script>
+</body>
+</html>
