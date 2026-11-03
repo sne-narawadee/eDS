@@ -250,6 +250,13 @@ function enterScanner() {
   S.busy = false; S.lastText = '';
   startCamera();
 }
+function camPolicy() {
+  try {
+    var fp = document.permissionsPolicy || document.featurePolicy;
+    if (fp && fp.allowsFeature) return fp.allowsFeature('camera') ? 'policy:allow' : 'policy:BLOCKED';
+  } catch (x) {}
+  return 'policy:n/a';
+}
 function isEmbedded() { try { return window.self !== window.top; } catch (x) { return true; } }
 function camErrText(e) {
   var n = (e && e.name) || 'Error';
@@ -264,7 +271,7 @@ function camErrText(e) {
   else if (n === 'NotFoundError') msg = 'ไม่พบกล้องในเครื่อง';
   else if (n === 'NotReadableError' || n === 'AbortError') msg = 'กล้องถูกใช้งานโดยแอปอื่นอยู่ กรุณาปิดแอปที่ใช้กล้อง แล้วกดลองอีกครั้ง';
   else msg = 'เปิดกล้องไม่ได้';
-  return msg + ' (' + n + ')';
+  return msg + ' (' + n + ', ' + camPolicy() + ')';
 }
 async function startCamera() {
   stopScanner();
@@ -294,6 +301,7 @@ async function startCamera() {
   } catch (e) {
     stopScanner();
     $('status').textContent = camErrText(e);
+    try { navigator.permissions.query({ name: 'camera' }).then(function (p) { $('status').textContent += ' [สิทธิ์: ' + p.state + ']'; }).catch(function () {}); } catch (x) {}
     $('retry').style.display = 'block';
     if (isEmbedded()) $('newwin').style.display = 'block';
     $('pic').className = 'ghost'; $('pic').textContent = 'ถ่ายรูป QR Code แทน'; $('pic').style.display = 'block';
