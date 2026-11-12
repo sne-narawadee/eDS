@@ -62,7 +62,7 @@ async function api(action, data = {}) {
   if (!j.ok) throw new Error(j.error);
   return j;
 }
-const busy = async (btn, fn) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; try { await fn(); } catch (e) { $('#err').textContent = e.message; btn.disabled = false; btn.textContent = t; } };
+const busy = async (btn, fn) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; try { await fn(); } catch (e) { const er = $('#err'); if (er) er.textContent = e.message; btn.disabled = false; btn.textContent = t; } };
 const head = (back, title) => `<div class="row"><h2>${title}</h2>${back ? '<button class="b3" onclick="viewHome()">กลับ</button>' : ''}</div>`;
 
 /* ---------- กล้อง / ลายเซ็น ---------- */
@@ -91,6 +91,7 @@ async function viewHome() {
   <div id="body" class="t">กำลังโหลด...</div>`;
   try {
     const { docs, count } = await api('list');
+    if (!$('#body')) return;      // ผู้ใช้ออกจากหน้านี้ไปแล้ว
     $('#body').outerHTML = `<div class="stats"><div class="c"><b>${count.HELD}</b><span class="t">รอส่งมอบ</span></div><div class="c"><b>${count.HANDED_OVER}</b><span class="t">ส่งมอบแล้ว</span></div></div>
     <div class="t">ผู้รับปลายทาง: ค้นหาหรือสแกน QR เพื่อรับเอกสาร</div><form class="row" onsubmit="return goTrack(event)"><input name="t" placeholder="เลขติดตาม เช่น DH-2611-0042" aria-label="เลขติดตาม"><button class="b2" style="width:auto;padding:0 14px">ค้นหา</button></form>
     ${'BarcodeDetector' in window ? '<button class="b2" onclick="viewScan()">สแกน QR</button>' : ''}
@@ -98,7 +99,7 @@ async function viewHome() {
     ${docs.map(d => `<button class="c" style="text-align:left;cursor:pointer" onclick="viewDoc('${esc(d.tracking_no)}')"><div class="row"><span class="t">${esc(d.tracking_no)}</span><span class="chip ${d.status === 'HELD' ? 'w' : ''}">${d.status === 'HELD' ? 'รอส่งมอบ' : 'ส่งมอบแล้ว'}</span></div>
       <div style="font-weight:600;margin:6px 0 2px">${esc(d.title)}</div><div class="t">ต้นทาง: ${esc(d.origin_name)} · ปลายทาง: ${esc(d.dest_name)}</div></button>`).join('') || '<div class="t">ยังไม่มีเอกสาร</div>'}
     <div style="flex:1"></div><button class="b" onclick="viewReceiveIn()">+ ผู้รับต้นทาง: รับเอกสารเข้า</button>`;
-  } catch (e) { $('#body').textContent = e.message; }
+  } catch (e) { const b = $('#body'); if (b) b.textContent = e.message; }
 }
 function goTrack(e) { e.preventDefault(); viewDoc(e.target.t.value); return false; }
 
@@ -112,6 +113,7 @@ async function viewDoc(t) {
   app.innerHTML = head(true, 'ไทม์ไลน์เอกสาร') + '<div id="body" class="t">กำลังโหลด...</div>';
   try {
     const { doc, events, chainOk } = await api('getDoc', { trackingNo: t });
+    if (!$('#body')) return;
     const held = doc.status === 'HELD';
     const evName = { ORIGIN_RECEIVE: 'ผู้รับต้นทางรับเอกสาร', DEST_HANDOVER: 'ผู้รับปลายทางรับเอกสาร' };
     $('#body').outerHTML = `<div class="c"><div class="row"><span class="t">${esc(doc.tracking_no)}</span><span class="chip ${held ? 'w' : ''}">${held ? 'รอส่งมอบ' : 'ส่งมอบแล้ว'}</span></div>
@@ -121,7 +123,7 @@ async function viewDoc(t) {
         <div class="c" style="flex:1"><div style="font-weight:600">${evName[e.event_type]}</div><div class="t">${fmt(e.occurred_ms)} · ${esc(e.person_name)}</div>
         <div class="row" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">${[['face_file_id', 'รูปหน้า'], ['doc_file_id', 'รูปเอกสาร'], ['sign_file_id', 'ลายเซ็น']].filter(([k]) => e[k]).map(([k, l]) => `<button class="b2" style="width:auto;padding:0 12px;min-height:36px" onclick="showPhoto('${e[k]}')">${l}</button>`).join('')}</div></div></div>`).join('')}
       ${held ? `<div style="flex:1"></div><button class="b" onclick="viewHandover('${esc(doc.tracking_no)}','${esc(doc.dest_name)}')">ยืนยันรับเอกสาร</button>` : ''}`;
-  } catch (e) { $('#body').textContent = e.message; }
+  } catch (e) { const b = $('#body'); if (b) b.textContent = e.message; }
 }
 async function showPhoto(id) {
   try { const { image } = await api('photo', { fileId: id }); const o = document.createElement('div'); o.className = 'ov'; o.onclick = () => o.remove(); o.innerHTML = `<img alt="รูปหลักฐาน" src="${image}">`; document.body.append(o); }
@@ -148,8 +150,9 @@ async function loadDepts() {
   const q = $('#dest_q'); $('#deptErr').textContent = ''; q.placeholder = 'กำลังโหลดรายชื่อ...';
   try {
     DEPTS = DEPTS || (await api('departments')).departments;
+    if (!$('#dest_q')) return;
     initCombo(DEPTS.map(d => d.name)); q.disabled = false; q.placeholder = 'พิมพ์ค้นหาหน่วยงาน...';
-  } catch (e) { q.placeholder = 'โหลดรายชื่อไม่สำเร็จ'; $('#deptErr').innerHTML = esc(e.message) + ' <button type="button" class="b3" style="color:var(--ok);font-weight:600" onclick="loadDepts()">ลองใหม่</button>'; }
+  } catch (e) { q.placeholder = 'โหลดรายชื่อไม่สำเร็จ'; const d = $('#deptErr'); if (d) d.innerHTML = esc(e.message) + ' <button type="button" class="b3" style="color:var(--ok);font-weight:600" onclick="loadDepts()">ลองใหม่</button>'; }
 }
 // ช่องเลือกหน่วยงานแบบพิมพ์ค้นหาได้ (combobox) — ค่าที่เลือกเก็บใน input hidden ชื่อ dest
 function initCombo(names) {
