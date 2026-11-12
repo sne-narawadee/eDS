@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DHATS</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{--bg:#F4F6F9;--ink:#14213D;--mute:#5B6475;--line:#DDE1E8;--ok:#0F766E;--okbg:#D9F2EE;--warn:#8A4B08;--warnbg:#FDE9CF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans Thai',sans-serif}
+main{max-width:480px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:100vh}
+h1{font-size:22px;margin:0;color:var(--ok)} h2{font-size:20px;margin:0}
+.t{font-size:12px;color:var(--mute)} .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.c{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.chip{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--okbg);color:#0B5F58;white-space:nowrap}
+.chip.w{background:var(--warnbg);color:var(--warn)}
+button,input,select{font:inherit;color:inherit}
+.b{min-height:48px;border-radius:12px;border:0;font-weight:600;background:var(--ok);color:#fff;padding:0 16px;cursor:pointer;width:100%}
+.b2{min-height:44px;border-radius:12px;border:1.5px solid var(--ok);background:#fff;color:var(--ok);font-weight:600;cursor:pointer;width:100%}
+.b3{background:none;border:0;color:var(--mute);cursor:pointer;min-height:40px}
+input,select{width:100%;min-height:48px;border:1px solid #AEB6C4;border-radius:10px;padding:0 12px;background:#fff}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+label.k{flex-direction:row;gap:10px;align-items:flex-start;color:var(--ink)} label.k input{width:20px;min-height:20px;margin:0}
+video,img.p,canvas.sg{width:100%;border-radius:12px;background:#14213D;display:block;margin:8px 0}
+canvas.sg{background:#fff;border:1.5px dashed #AEB6C4;height:120px;touch-action:none}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stats b{font-size:26px;display:block}
+.tl{display:flex;gap:12px}.dot{width:14px;height:14px;border-radius:50%;background:var(--ok);margin-top:4px;flex:none}
+.line{width:2px;background:#C5CBD6;margin:0 6px} .err{color:#B42318;font-size:14px;min-height:20px}
+:focus-visible{outline:3px solid #7FD6CB;outline-offset:2px}
+.ov{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px}.ov img{max-width:100%;max-height:90vh;border-radius:10px}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+/* ====== ตั้งค่า: ใส่ URL ของ Apps Script Web App ====== */
+const API = 'PASTE_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = ms => new Date(Number(ms)).toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'});
+const P = {};            // รูปที่ถ่ายแล้ว
+let sigDrawn = false;
+const app = $('#app');
+
+async function api(action, data = {}) {
+  // ใช้ text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight (Apps Script ไม่รองรับ OPTIONS)
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, ...data }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error);
+  return j;
+}
+const busy = async (btn, fn) => { const t = btn.textContent; btn.disabled = true; btn.textContent = 'กำลังบันทึก...'; try { await fn(); } catch (e) { $('#err').textContent = e.message; btn.disabled = false; btn.textContent = t; } };
+const head = (back, title) => `<div class="row"><h2>${title}</h2>${back ? '<button class="b3" onclick="viewHome()">กลับ</button>' : ''}</div>`;
+
+/* ---------- กล้อง / ลายเซ็น ---------- */
+async function cam(v, facing) { v.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false }); await v.play(); }
+function stopCam(v) { v.srcObject && v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; }
+function snap(v) { const k = Math.min(1, 640 / v.videoWidth), c = document.createElement('canvas'); c.width = v.videoWidth * k; c.height = v.videoHeight * k; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', .7); }
+const photoBox = (id, facing, label) => `<div class="c"><div class="t">${label}</div><video id="v_${id}" playsinline muted hidden></video><img class="p" id="i_${id}" alt="" hidden><button type="button" class="b2" onclick="shot('${id}','${facing}')">เปิดกล้อง</button></div>`;
+async function shot(id, facing) {
+  const v = $('#v_' + id), i = $('#i_' + id), b = i.nextElementSibling;
+  try {
+    if (v.srcObject) { P[id] = snap(v); stopCam(v); v.hidden = true; i.src = P[id]; i.hidden = false; b.textContent = 'ถ่ายใหม่'; return; }
+    delete P[id]; i.hidden = true; v.hidden = false; await cam(v, facing); b.textContent = 'ถ่ายรูป';
+  } catch { $('#err').textContent = 'เปิดกล้องไม่ได้ กรุณาอนุญาตการใช้กล้อง (ต้องเปิดผ่าน https)'; }
+}
+function initSig() {
+  const c = $('#sig'), x = c.getContext('2d'); c.width = c.offsetWidth * 2; c.height = 240; x.lineWidth = 4; x.lineCap = 'round'; sigDrawn = false;
+  let on = false; const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * 2, (e.clientY - r.top) * 2]; };
+  c.onpointerdown = e => { on = true; x.beginPath(); x.moveTo(...pos(e)); c.setPointerCapture(e.pointerId); };
+  c.onpointermove = e => { if (on) { x.lineTo(...pos(e)); x.stroke(); sigDrawn = true; } };
+  c.onpointerup = () => on = false;
+}
+
+/* ---------- หน้าจอ ---------- */
+async function viewHome() {
+  app.innerHTML = `<div><h1>DHATS</h1><div class="t">ระบบรับ-ส่งมอบและติดตามเอกสาร</div></div>
+  <div id="body" class="t">กำลังโหลด...</div>`;
+  try {
+    const { docs, count } = await api('list');
+    $('#body').outerHTML = `<div class="stats"><div class="c"><b>${count.HELD}</b><span class="t">รอส่งมอบ</span></div><div class="c"><b>${count.HANDED_OVER}</b><span class="t">ส่งมอบแล้ว</span></div></div>
+    <div class="t">ผู้รับปลายทาง: ค้นหาหรือสแกน QR เพื่อรับเอกสาร</div><form class="row" onsubmit="return goTrack(event)"><input name="t" placeholder="เลขติดตาม เช่น DH-2611-0042" aria-label="เลขติดตาม"><button class="b2" style="width:auto;padding:0 14px">ค้นหา</button></form>
+    ${'BarcodeDetector' in window ? '<button class="b2" onclick="viewScan()">สแกน QR</button>' : ''}
+    <div style="font-weight:600">รายการล่าสุด</div>
+    ${docs.map(d => `<button class="c" style="text-align:left;cursor:pointer" onclick="viewDoc('${esc(d.tracking_no)}')"><div class="row"><span class="t">${esc(d.tracking_no)}</span><span class="chip ${d.status === 'HELD' ? 'w' : ''}">${d.status === 'HELD' ? 'รอส่งมอบ' : 'ส่งมอบแล้ว'}</span></div>
+      <div style="font-weight:600;margin:6px 0 2px">${esc(d.title)}</div><div class="t">ต้นทาง: ${esc(d.origin_name)} · ปลายทาง: ${esc(d.dest_name)}</div></button>`).join('') || '<div class="t">ยังไม่มีเอกสาร</div>'}
+    <div style="flex:1"></div><button class="b" onclick="viewReceiveIn()">+ ผู้รับต้นทาง: รับเอกสารเข้า</button>`;
+  } catch (e) { $('#body').textContent = e.message; }
+}
+function goTrack(e) { e.preventDefault(); viewDoc(e.target.t.value); return false; }
+
+async function viewScan() {
+  app.innerHTML = head(true, 'สแกน QR') + `<video id="sv" playsinline muted></video>`;
+  const v = $('#sv'), det = new BarcodeDetector({ formats: ['qr_code'] }); await cam(v, 'environment');
+  const tick = async () => { if (!v.srcObject) return; const r = await det.detect(v).catch(() => []); if (r.length) { stopCam(v); viewDoc(r[0].rawValue); } else setTimeout(tick, 400); }; tick();
+}
+
+async function viewDoc(t) {
+  app.innerHTML = head(true, 'ไทม์ไลน์เอกสาร') + '<div id="body" class="t">กำลังโหลด...</div>';
+  try {
+    const { doc, events, chainOk } = await api('getDoc', { trackingNo: t });
+    const held = doc.status === 'HELD';
+    const evName = { ORIGIN_RECEIVE: 'ผู้รับต้นทางรับเอกสาร', DEST_HANDOVER: 'ผู้รับปลายทางรับเอกสาร' };
+    $('#body').outerHTML = `<div class="c"><div class="row"><span class="t">${esc(doc.tracking_no)}</span><span class="chip ${held ? 'w' : ''}">${held ? 'รอส่งมอบ' : 'ส่งมอบแล้ว'}</span></div>
+      <div style="font-weight:600;margin-top:4px">${esc(doc.title)} (${esc(doc.piece_count)} ชิ้น)</div><div class="t">ผู้ฝาก: ${esc(doc.depositor_name || '-')} · ปลายทาง: ${esc(doc.dest_name)}</div></div>
+      <div><span class="chip ${chainOk ? '' : 'w'}">${chainOk ? 'ตรวจสอบความสมบูรณ์ของสายการครอบครอง: ผ่าน' : 'พบความผิดปกติของข้อมูล'}</span></div>
+      ${events.map((e, i) => `<div class="tl"><div style="display:flex;flex-direction:column;align-items:center"><div class="dot"></div>${i < events.length - 1 ? '<div class="line" style="flex:1"></div>' : ''}</div>
+        <div class="c" style="flex:1"><div style="font-weight:600">${evName[e.event_type]}</div><div class="t">${fmt(e.occurred_ms)} · ${esc(e.person_name)}</div>
+        <div class="row" style="justify-content:flex-start;margin-top:8px;flex-wrap:wrap">${[['face_file_id', 'รูปหน้า'], ['doc_file_id', 'รูปเอกสาร'], ['sign_file_id', 'ลายเซ็น']].filter(([k]) => e[k]).map(([k, l]) => `<button class="b2" style="width:auto;padding:0 12px;min-height:36px" onclick="showPhoto('${e[k]}')">${l}</button>`).join('')}</div></div></div>`).join('')}
+      ${held ? `<div style="flex:1"></div><button class="b" onclick="viewHandover('${esc(doc.tracking_no)}','${esc(doc.dest_name)}')">ยืนยันรับเอกสาร</button>` : ''}`;
+  } catch (e) { $('#body').textContent = e.message; }
+}
+async function showPhoto(id) {
+  try { const { image } = await api('photo', { fileId: id }); const o = document.createElement('div'); o.className = 'ov'; o.onclick = () => o.remove(); o.innerHTML = `<img alt="รูปหลักฐาน" src="${image}">`; document.body.append(o); }
+  catch (e) { alert(e.message); }
+}
+
+const consent = `<label class="k"><input type="checkbox" id="cs"> ข้าพเจ้ายินยอมให้เก็บภาพใบหน้าเป็นหลักฐานการรับเอกสาร (เก็บ 90 วัน)</label>`;
+
+function viewReceiveIn() {
+  Object.keys(P).forEach(k => delete P[k]);
+  app.innerHTML = head(true, 'รับเอกสารเข้า') + `<form style="display:flex;flex-direction:column;gap:12px" onsubmit="return doReceiveIn(event)">
+    <label>ชื่อผู้รับต้นทาง<input name="origin" value="${esc(localStorage.dh_name || '')}" required></label><label>ชื่อเอกสาร<input name="title" required></label>
+    <div class="row"><label style="flex:1">ประเภท<input name="docType" placeholder="สัญญา / ใบเสนอราคา"></label><label style="width:90px">จำนวน<input name="pc" type="number" min="1" value="1"></label></div>
+    <label>ผู้ฝาก<input name="dep"></label><label>ผู้รับปลายทาง<input name="dest" required></label>
+    ${photoBox('doc', 'environment', 'รูปเอกสาร (ถ้ามี)')}${photoBox('face', 'user', 'รูปหน้าผู้รับต้นทาง')}${consent}
+    <div class="err" id="err"></div><button class="b">บันทึกการรับเอกสาร</button></form>`;
+}
+function doReceiveIn(e) {
+  e.preventDefault(); const f = e.target;
+  busy(f.querySelector('.b'), async () => {
+    localStorage.dh_name = f.origin.value;
+    const j = await api('createDoc', { originName: f.origin.value, title: f.title.value, docType: f.docType.value, pieceCount: f.pc.value, depositorName: f.dep.value, destName: f.dest.value, faceImage: P.face, docImage: P.doc, consent: $('#cs').checked });
+    const q = qrcode(0, 'M'); q.addData(j.trackingNo); q.make();
+    app.innerHTML = head(false, 'บันทึกแล้ว') + `<div class="c" style="text-align:center"><div style="width:200px;margin:0 auto">${q.createSvgTag(6)}</div><div style="font-weight:700;font-size:20px;margin-top:8px">${esc(j.trackingNo)}</div><div class="t">พิมพ์หรือบันทึก QR นี้ติดกับเอกสาร</div></div><button class="b" onclick="viewHome()">กลับหน้าหลัก</button>`;
+  }); return false;
+}
+
+function viewHandover(t, destName) {
+  Object.keys(P).forEach(k => delete P[k]);
+  app.innerHTML = head(true, 'ผู้รับปลายทางยืนยันรับเอกสาร') + `<form style="display:flex;flex-direction:column;gap:12px" onsubmit="return doHandover(event,'${t}')">
+    <div class="c"><div class="t">${esc(t)}</div><div class="t">ผู้รับที่กำหนด: ${esc(destName)}</div></div>
+    ${photoBox('face', 'user', 'รูปหน้าผู้รับ')}<label>ชื่อผู้รับ<input name="name" placeholder="กรอกชื่อ-นามสกุลผู้รับ" required></label>
+    <div><div class="t">ลายเซ็น</div><canvas class="sg" id="sig"></canvas></div>${consent}
+    <div class="err" id="err"></div><button class="b">ยืนยันการรับเอกสาร</button></form>`;
+  initSig();
+}
+function doHandover(e, t) {
+  e.preventDefault(); const f = e.target;
+  busy(f.querySelector('.b'), async () => {
+    if (!sigDrawn) throw new Error('กรุณาเซ็นชื่อ');
+    await api('handover', { trackingNo: t, personName: f.name.value, faceImage: P.face, signImage: $('#sig').toDataURL('image/png'), consent: $('#cs').checked });
+    viewDoc(t);
+  }); return false;
+}
+
+viewHome();
+</script>
+</body>
+</html>
