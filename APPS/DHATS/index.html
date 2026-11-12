@@ -28,6 +28,12 @@ canvas.sg{background:#fff;border:1.5px dashed #AEB6C4;height:120px;touch-action:
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stats b{font-size:26px;display:block}
 .tl{display:flex;gap:12px}.dot{width:14px;height:14px;border-radius:50%;background:var(--ok);margin-top:4px;flex:none}
 .line{width:2px;background:#C5CBD6;margin:0 6px} .err{color:#B42318;font-size:14px;min-height:20px}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+.cb{position:relative}
+#dest_list{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:#fff;border:1px solid #AEB6C4;border-radius:10px;max-height:240px;overflow:auto;z-index:5;box-shadow:0 6px 20px #14213d22}
+#dest_list li{padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--ink);font-size:15px;min-height:44px;display:flex;align-items:center}
+#dest_list li:hover,#dest_list li[aria-selected=true]{background:var(--okbg)}
+#dest_list li.none{color:var(--mute);cursor:default;font-size:13px}
 :focus-visible{outline:3px solid #7FD6CB;outline-offset:2px}
 .ov{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px}.ov img{max-width:100%;max-height:90vh;border-radius:10px}
 </style>
@@ -108,7 +114,7 @@ async function viewDoc(t) {
     const held = doc.status === 'HELD';
     const evName = { ORIGIN_RECEIVE: 'ผู้รับต้นทางรับเอกสาร', DEST_HANDOVER: 'ผู้รับปลายทางรับเอกสาร' };
     $('#body').outerHTML = `<div class="c"><div class="row"><span class="t">${esc(doc.tracking_no)}</span><span class="chip ${held ? 'w' : ''}">${held ? 'รอส่งมอบ' : 'ส่งมอบแล้ว'}</span></div>
-      <div style="font-weight:600;margin-top:4px">${esc(doc.title)} (${esc(doc.piece_count)} ชิ้น)</div><div class="t">ผู้ฝาก: ${esc(doc.depositor_name || '-')} · ปลายทาง: ${esc(doc.dest_name)}</div></div>
+      <div style="font-weight:600;margin-top:4px">${esc(doc.title)} (${esc(doc.piece_count)} ชิ้น)</div><div class="t">ชื่อผู้ฝาก: ${esc(doc.depositor_name || '-')} · ปลายทาง: ${esc(doc.dest_name)}</div></div>
       <div><span class="chip ${chainOk ? '' : 'w'}">${chainOk ? 'ตรวจสอบความสมบูรณ์ของสายการครอบครอง: ผ่าน' : 'พบความผิดปกติของข้อมูล'}</span></div>
       ${events.map((e, i) => `<div class="tl"><div style="display:flex;flex-direction:column;align-items:center"><div class="dot"></div>${i < events.length - 1 ? '<div class="line" style="flex:1"></div>' : ''}</div>
         <div class="c" style="flex:1"><div style="font-weight:600">${evName[e.event_type]}</div><div class="t">${fmt(e.occurred_ms)} · ${esc(e.person_name)}</div>
@@ -127,16 +133,55 @@ function viewReceiveIn() {
   Object.keys(P).forEach(k => delete P[k]);
   app.innerHTML = head(true, 'รับเอกสารเข้า') + `<form style="display:flex;flex-direction:column;gap:12px" onsubmit="return doReceiveIn(event)">
     <label>ชื่อผู้รับต้นทาง<input name="origin" value="${esc(localStorage.dh_name || '')}" required></label><label>ชื่อเอกสาร<input name="title" required></label>
-    <div class="row"><label style="flex:1">ประเภท<input name="docType" placeholder="สัญญา / ใบเสนอราคา"></label><label style="width:90px">จำนวน<input name="pc" type="number" min="1" value="1"></label></div>
-    <label>ผู้ฝาก<input name="dep"></label><label>ผู้รับปลายทาง<input name="dest" required></label>
+    <label>จำนวน (ชิ้น)<input name="pc" type="number" min="1" value="1"></label>
+    <label>ผู้ฝาก<input name="dep"></label>
+    <div class="fld"><label for="dest_q">หน่วยงานปลายทาง</label><div class="cb">
+      <input id="dest_q" role="combobox" aria-expanded="false" aria-controls="dest_list" aria-autocomplete="list" autocomplete="off" placeholder="กำลังโหลดรายชื่อ..." disabled>
+      <input type="hidden" name="dest" id="dest"><ul id="dest_list" role="listbox" hidden></ul></div></div>
     ${photoBox('doc', 'environment', 'รูปเอกสาร (ถ้ามี)')}${photoBox('face', 'user', 'รูปหน้าผู้รับต้นทาง')}${consent}
     <div class="err" id="err"></div><button class="b">บันทึกการรับเอกสาร</button></form>`;
+  loadDepts();
+}
+let DEPTS = null;
+async function loadDepts() {
+  const q = $('#dest_q');
+  try {
+    DEPTS = DEPTS || (await api('departments')).departments;
+    initCombo(DEPTS.map(d => d.name)); q.disabled = false; q.placeholder = 'พิมพ์ค้นหาหน่วยงาน...';
+  } catch (e) { q.placeholder = 'โหลดรายชื่อไม่สำเร็จ'; $('#err').textContent = e.message; }
+}
+// ช่องเลือกหน่วยงานแบบพิมพ์ค้นหาได้ (combobox) — ค่าที่เลือกเก็บใน input hidden ชื่อ dest
+function initCombo(names) {
+  const q = $('#dest_q'), hid = $('#dest'), ul = $('#dest_list'); let hi = -1, shown = [];
+  const norm = x => x.toLowerCase().replace(/\s+/g, '');
+  const render = all => {
+    const k = all ? '' : norm(q.value), hit = names.filter(n => norm(n).includes(k));
+    shown = hit.slice(0, 50);
+    ul.innerHTML = (shown.length ? shown.map((n, i) => `<li role="option" data-i="${i}"${i === hi ? ' aria-selected="true"' : ''}>${esc(n)}</li>`).join('') : '<li class="none">ไม่พบหน่วยงานที่ค้นหา</li>')
+      + (hit.length > 50 ? '<li class="none">พิมพ์เพิ่มเพื่อค้นหาให้แคบลง...</li>' : '');
+    ul.hidden = false; q.setAttribute('aria-expanded', 'true');
+  };
+  const close = () => { ul.hidden = true; q.setAttribute('aria-expanded', 'false'); hi = -1; };
+  const pick = n => { q.value = n; hid.value = n; close(); };
+  q.onfocus = () => { q.select(); render(!!hid.value); };
+  q.oninput = () => { hid.value = ''; hi = 0; render(false); };
+  q.onkeydown = e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); hi = Math.max(0, Math.min(shown.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); render(false);
+      const sel = ul.querySelector('[aria-selected]'); sel && sel.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && !ul.hidden) { e.preventDefault(); if (shown[hi]) pick(shown[hi]); else if (shown.length === 1) pick(shown[0]); }
+    else if (e.key === 'Escape') close();
+  };
+  ul.onmousedown = e => e.preventDefault();      // ไม่ให้ช่องพิมพ์เสียโฟกัสก่อนเลือก
+  ul.onclick = e => { const li = e.target.closest('li[data-i]'); if (li) pick(shown[li.dataset.i]); };
+  q.onblur = () => { close(); if (!hid.value) { const m = names.find(n => norm(n) === norm(q.value)); if (m) pick(m); } };
 }
 function doReceiveIn(e) {
   e.preventDefault(); const f = e.target;
   busy(f.querySelector('.b'), async () => {
+    if (!f.dest.value) throw new Error('กรุณาเลือกหน่วยงานปลายทางจากรายการ');
     localStorage.dh_name = f.origin.value;
-    const j = await api('createDoc', { originName: f.origin.value, title: f.title.value, docType: f.docType.value, pieceCount: f.pc.value, depositorName: f.dep.value, destName: f.dest.value, faceImage: P.face, docImage: P.doc, consent: $('#cs').checked });
+    const j = await api('createDoc', { originName: f.origin.value, title: f.title.value, pieceCount: f.pc.value, depositorName: f.dep.value, destName: f.dest.value, faceImage: P.face, docImage: P.doc, consent: $('#cs').checked });
     const q = qrcode(0, 'M'); q.addData(j.trackingNo); q.make();
     app.innerHTML = head(false, 'บันทึกแล้ว') + `<div class="c" style="text-align:center"><div style="width:200px;margin:0 auto">${q.createSvgTag(6)}</div><div style="font-weight:700;font-size:20px;margin-top:8px">${esc(j.trackingNo)}</div><div class="t">พิมพ์หรือบันทึก QR นี้ติดกับเอกสาร</div></div><button class="b" onclick="viewHome()">กลับหน้าหลัก</button>`;
   }); return false;
@@ -145,9 +190,9 @@ function doReceiveIn(e) {
 function viewHandover(t, destName) {
   Object.keys(P).forEach(k => delete P[k]);
   app.innerHTML = head(true, 'ผู้รับปลายทางยืนยันรับเอกสาร') + `<form style="display:flex;flex-direction:column;gap:12px" onsubmit="return doHandover(event,'${t}')">
-    <div class="c"><div class="t">${esc(t)}</div><div class="t">ผู้รับที่กำหนด: ${esc(destName)}</div></div>
+    <div class="c"><div class="t">${esc(t)}</div><div class="t">หน่วยงานปลายทาง: ${esc(destName)}</div></div>
     ${photoBox('face', 'user', 'รูปหน้าผู้รับ')}<label>ชื่อผู้รับ<input name="name" placeholder="กรอกชื่อ-นามสกุลผู้รับ" required></label>
-    <div><div class="t">ลายเซ็น</div><canvas class="sg" id="sig"></canvas></div>${consent}
+    <div><div class="row"><span class="t">ลายเซ็น</span><button type="button" class="b3" style="color:var(--ok);font-weight:600" onclick="initSig()">ล้างลายเซ็น</button></div><canvas class="sg" id="sig"></canvas></div>${consent}
     <div class="err" id="err"></div><button class="b">ยืนยันการรับเอกสาร</button></form>`;
   initSig();
 }
