@@ -47,8 +47,11 @@ const app = $('#app');
 
 async function api(action, data = {}) {
   // ใช้ text/plain เพื่อไม่ให้เบราว์เซอร์ส่ง preflight (Apps Script ไม่รองรับ OPTIONS)
+  if (/PASTE_/.test(API)) throw new Error('ยังไม่ได้ตั้งค่า API (ใส่ URL ของ Apps Script Web App ในตัวแปร API)');
   const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, ...data }) });
-  const j = await r.json();
+  const txt = await r.text();
+  let j;
+  try { j = JSON.parse(txt); } catch { throw new Error('เซิร์ฟเวอร์ไม่ตอบเป็น JSON (HTTP ' + r.status + ') — ตรวจ URL /exec, การ Deploy เป็น Anyone และการอนุญาตสิทธิ์สคริปต์'); }
   if (!j.ok) throw new Error(j.error);
   return j;
 }
