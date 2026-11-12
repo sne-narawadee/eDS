@@ -134,21 +134,21 @@ function viewReceiveIn() {
   app.innerHTML = head(true, 'รับเอกสารเข้า') + `<form style="display:flex;flex-direction:column;gap:12px" onsubmit="return doReceiveIn(event)">
     <label>ชื่อผู้รับต้นทาง<input name="origin" value="${esc(localStorage.dh_name || '')}" required></label><label>ชื่อเอกสาร<input name="title" required></label>
     <label>จำนวน (ชิ้น)<input name="pc" type="number" min="1" value="1"></label>
-    <label>ผู้ฝาก<input name="dep"></label>
+    <label>ชื่อผู้ฝาก<input name="dep"></label>
     <div class="fld"><label for="dest_q">หน่วยงานปลายทาง</label><div class="cb">
       <input id="dest_q" role="combobox" aria-expanded="false" aria-controls="dest_list" aria-autocomplete="list" autocomplete="off" placeholder="กำลังโหลดรายชื่อ..." disabled>
-      <input type="hidden" name="dest" id="dest"><ul id="dest_list" role="listbox" hidden></ul></div></div>
+      <input type="hidden" name="dest" id="dest"><ul id="dest_list" role="listbox" hidden></ul></div><div class="err" id="deptErr"></div></div>
     ${photoBox('doc', 'environment', 'รูปเอกสาร (ถ้ามี)')}${photoBox('face', 'user', 'รูปหน้าผู้รับต้นทาง')}${consent}
     <div class="err" id="err"></div><button class="b">บันทึกการรับเอกสาร</button></form>`;
   loadDepts();
 }
 let DEPTS = null;
 async function loadDepts() {
-  const q = $('#dest_q');
+  const q = $('#dest_q'); $('#deptErr').textContent = ''; q.placeholder = 'กำลังโหลดรายชื่อ...';
   try {
     DEPTS = DEPTS || (await api('departments')).departments;
     initCombo(DEPTS.map(d => d.name)); q.disabled = false; q.placeholder = 'พิมพ์ค้นหาหน่วยงาน...';
-  } catch (e) { q.placeholder = 'โหลดรายชื่อไม่สำเร็จ'; $('#err').textContent = e.message; }
+  } catch (e) { q.placeholder = 'โหลดรายชื่อไม่สำเร็จ'; $('#deptErr').innerHTML = esc(e.message) + ' <button type="button" class="b3" style="color:var(--ok);font-weight:600" onclick="loadDepts()">ลองใหม่</button>'; }
 }
 // ช่องเลือกหน่วยงานแบบพิมพ์ค้นหาได้ (combobox) — ค่าที่เลือกเก็บใน input hidden ชื่อ dest
 function initCombo(names) {
